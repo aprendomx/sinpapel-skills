@@ -1,0 +1,15 @@
+[project]
+name = "sinpapel-skills"
+version = "0.1.0"
+description = "Skills multi-proveedor (Claude, Cursor, OpenCode) para el framework sinpapel."
+requires-python = ">=3.10"
+dependencies = [
+    "PyYAML>=6.0",
+]
+
+[project.optional-dependencies]
+dev = ["ruff>=0.5"]
+
+[build-system]
+requires = ["setuptools>=68"]
+build-backend = "setuptools.build_meta"

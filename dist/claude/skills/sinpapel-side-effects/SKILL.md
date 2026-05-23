@@ -1,0 +1,182 @@
+---
+name: sinpapel-side-effects
+description: Usar siempre que el usuario quiera ejecutar lógica adicional tras una transición de sinpapel (notificaciones, generación de oficios, integración con sistemas externos, llamadas a otros servicios), use el decorador register_side_effect, registre handlers en AppConfig.ready(), o pregunte qué pasa si un handler falla, cuándo se ejecuta y cómo afecta a la atomicidad de la transición.
+tested_against:
+  - sinpapel==0.5.1
+applies_to:
+  - "**/apps.py"
+  - "**/side_effects.py"
+  - "**/services/side_effects*.py"
+---
+
+# Side effects en transiciones
+
+## Qué es un side effect
+
+Una función que `WorkflowEngine` invoca **después** de persistir el cambio
+de estado y `SeguimientoWorkflow`, **antes** de devolver el resultado.
+Está pensado para tareas asociadas al estado **destino**: generar un
+oficio, enviar email, encolar una tarea Celery, llamar a un servicio
+externo.
+
+Implementado en `sinpapel/services/side_effects.py` (decorador
+`register_side_effect` + diccionario interno `SIDE_EFFECTS`).
+
+## Registrar un handler
+
+```python
+# tu_app/side_effects.py
+from sinpapel.services.side_effects import register_side_effect
+
+@register_side_effect("APROBADA")
+def on_aprobada(instance, user, **kwargs):
+    """Handler que se invoca al entrar al estado APROBADA."""
+    monto = kwargs.get("monto_aprobado")
+    oficio = generar_oficio(instance, monto)
+    enviar_email_notificacion(instance, oficio)
+    return {"oficio_id": oficio.id}   # se incluye en el dict de transition()
+```
+
+**Reglas:**
+
+- La clave es el `nombre` del estado **destino**, exactamente como está en
+  `Estado.nombre` (case-sensitive).
+- Solo se permite **un** handler por estado. Registrar dos veces sobrescribe.
+- La firma es `(instance, user, **kwargs)`. `kwargs` incluye lo que se
+  pasó a `transition()` (`comentarios`, `monto_aprobado`, `condiciones`,
+  `ip_address`, etc.).
+- Si retornas un `dict`, sus keys se fusionan en el `dict` que devuelve
+  `transition()`. Si no retornas nada, queda `{}`.
+
+## Registro de los handlers (cuándo se importan)
+
+Los handlers deben estar registrados **antes** de que se invoque la
+primera transición. El patrón canónico es importarlos en `AppConfig.ready()`:
+
+```python
+# tu_app/apps.py
+from django.apps import AppConfig
+
+class TuAppConfig(AppConfig):
+    name = "tu_app"
+    default_auto_field = "django.db.models.BigAutoField"
+
+    def ready(self):
+        # Importa el módulo para ejecutar el decorador register_side_effect
+        from . import side_effects  # noqa: F401
+```
+
+Sin esto, el handler **no existe** para el motor y la transición se
+ejecuta sin él (silenciosamente).
+
+## Comportamiento ante errores
+
+`WorkflowEngine` corre la transición en `@transaction.atomic`. Si el
+handler lanza una excepción:
+
+- El error se **logea** pero **no se re-lanza**.
+- La transición ya commiteó atómicamente (estado + `SeguimientoWorkflow`).
+- El `dict` devuelto incluye `{"error": True, "estado": "<destino>"}` en
+  lugar de los datos del handler.
+
+**Implicación:** un side effect que falla **no** revierte el cambio de
+estado. Si necesitas atomicidad estricta entre estado y efecto, ejecuta
+la lógica **antes** de transicionar (en un predicado o en la vista) y
+**no** la pongas como side effect.
+
+## Atomicidad: cuándo el efecto sí cuenta
+
+```
+┌── transaction.atomic ──────────────────────────────┐
+│  1. validate (grupos, predicados, requisitos)      │
+│  2. instance.estado = nuevo; instance.save()       │
+│  3. SeguimientoWorkflow.objects.create(...)        │
+│  4. RegistroFirma (si firma_payload)               │
+│  5. side_effect(instance, user, **kwargs) ← AQUÍ   │
+└────────────────────────────────────────────────────┘
+```
+
+El handler corre **dentro** de la misma transacción, pero el motor captura
+sus excepciones. Si quieres que el handler **sí** revierta la transacción,
+lanza `transaction.set_rollback(True)` manualmente y deja que la excepción
+fluya (no recomendado: rompe el contrato del motor).
+
+Mejor: implementa la lógica crítica como **predicado** (bloquea antes) y
+deja los side effects para lo que es no-bloqueante (notificar, encolar).
+
+## Ejemplos típicos
+
+### Enviar email tras aprobar
+
+```python
+@register_side_effect("APROBADA")
+def notificar_aprobacion(instance, user, **kwargs):
+    send_mail(
+        subject=f"Solicitud {instance.folio} aprobada",
+        message="...",
+        from_email="no-reply@tudominio.com",
+        recipient_list=[instance.solicitante.email],
+        fail_silently=True,  # no rompas la transición por SMTP caído
+    )
+    return {"email_enviado": True}
+```
+
+### Encolar tarea Celery
+
+```python
+@register_side_effect("EN_DISPERSION")
+def encolar_dispersion(instance, user, **kwargs):
+    from tu_app.tasks import dispersar_pago
+    task = dispersar_pago.delay(instance.pk)
+    return {"task_id": task.id}
+```
+
+### Llamar a un servicio externo
+
+```python
+@register_side_effect("PUBLICADA")
+def publicar_en_portal(instance, user, **kwargs):
+    try:
+        resp = requests.post(PORTAL_URL, json=serialize(instance), timeout=5)
+        return {"portal_status": resp.status_code}
+    except requests.RequestException as exc:
+        # El error se logea por el motor; devolvemos info para diagnóstico.
+        return {"portal_error": str(exc)}
+```
+
+## Side effects y previsualización
+
+`preview_transition()` **no** ejecuta side effects. En su lugar, devuelve
+en `report["side_effects"]` la lista de nombres de handlers que se
+invocarían. Útil para advertir al usuario antes de confirmar.
+
+## Anti-patrones
+
+- **No** levantes excepciones para abortar la transición desde un side
+  effect: el motor las atrapa y la transición queda commiteada.
+- **No** llames `instance.transition(...)` recursivamente desde un side
+  effect: provoca recursión.
+- **No** registres handlers en el `__init__.py` de la app: usa
+  `AppConfig.ready()`. El orden de imports no está garantizado fuera de
+  ahí.
+- **No** asumas que el handler corre fuera de la transacción: corre
+  dentro. Si tu lógica hace I/O lento (HTTP, email), considera encolar y
+  retornar rápido.
+- **No** registres dos handlers para el mismo estado: el último gana.
+- **No** uses el side effect para validar: usa **predicados**
+  (`sinpapel-predicates`). Los predicados sí bloquean.
+- **No** olvides el `noqa: F401` en el import dentro de `ready()`: los
+  linters lo marcan como import sin uso, pero el side effect existe en
+  el import en sí.
+
+## Verificar que están registrados
+
+```python
+from sinpapel.services.side_effects import SIDE_EFFECTS
+print(list(SIDE_EFFECTS.keys()))   # ['APROBADA', 'EN_DISPERSION', ...]
+```
+
+## Siguiente paso
+
+- Para bloqueos previos a la transición: `sinpapel-predicates`.
+- Para webhooks como side effect canónico: `sinpapel-webhooks`.

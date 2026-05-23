@@ -1,0 +1,269 @@
+---
+name: sinpapel-testing
+description: Usar siempre que el usuario escriba tests de un proyecto que use sinpapel, configure pytest / pytest-django, use FakeBackend en lugar de FielBackend real, genere un keypair RSA en fixtures, limpie el cache del framework entre tests, use WorkflowRegistry.unregister, mockee transiciones o verifique history_user en tests sin request. Cubre los settings de test y los patrones de aislamiento.
+tested_against:
+  - sinpapel==0.5.1
+  - sinpapel-drf==0.2.1
+  - sinpapel-webhooks==0.2.1
+applies_to:
+  - "**/tests/**/*.py"
+  - "**/conftest.py"
+  - "**/settings/test*.py"
+---
+
+# Testing con sinpapel
+
+## Filosofía
+
+- **Nunca** uses `FielBackend` real ni red en tests. Usa `FakeBackend`.
+- **Nunca** dependas del cache entre tests; el framework lo invalida por
+  signals, pero conviene limpiar explícitamente con autouse fixtures.
+- **Aísla** registros del `WorkflowRegistry` que cree el test (modelos
+  decorados dinámicamente).
+
+## Settings de test
+
+```python
+# settings/test.py
+from .base import *  # noqa
+
+SINPAPEL_SIGNATURE_BACKEND = "sinpapel.signing.backends.fake.FakeBackend"
+SINPAPEL_PREDICATE_MODULES = ["tu_app.tests.predicates"]   # whitelist explícita
+SINPAPEL_ALLOW_SERVER_SIGNING = False
+
+CACHES = {
+    "default": {
+        "BACKEND": "django.core.cache.backends.locmem.LocMemCache",
+    }
+}
+
+DATABASES = {
+    "default": {
+        "ENGINE": "django.db.backends.sqlite3",
+        "NAME": ":memory:",
+    }
+}
+
+# Si usas sinpapel-webhooks:
+SINPAPEL_WEBHOOKS_BACKEND = "inline"   # síncrono, sin reintentos
+```
+
+## conftest.py recomendado
+
+```python
+import pytest
+from sinpapel.cache import clear_all
+from sinpapel.signing.factory import reset_backend_cache
+from sinpapel.registry import WorkflowRegistry
+
+
+@pytest.fixture(autouse=True)
+def _clear_sinpapel_cache():
+    """Anti-leak: LocMemCache puede ensuciar tests."""
+    clear_all()
+    reset_backend_cache()
+    yield
+    clear_all()
+    reset_backend_cache()
+
+
+@pytest.fixture
+def cleanup_registry():
+    """Limpia keys de workflow registradas durante el test."""
+    keys_before = set(WorkflowRegistry.list_keys())
+    yield
+    keys_after = set(WorkflowRegistry.list_keys())
+    for key in keys_after - keys_before:
+        WorkflowRegistry.unregister(key)
+```
+
+## Sembrar un mini-flujo para tests
+
+```python
+@pytest.fixture
+def flujo_basico(db):
+    from sinpapel.models import Estado, VersionFlujo, ConfiguracionTransicion
+    captura = Estado.objects.create(nombre="CAPTURA", activo=True)
+    revision = Estado.objects.create(nombre="EN_REVISION", activo=True)
+    aprobada = Estado.objects.create(nombre="APROBADA", activo=True)
+    flujo = VersionFlujo.objects.create(nombre="solicitudes", activo=True)
+    ConfiguracionTransicion.objects.create(flujo=flujo, estado_origen=captura, estado_destino=revision)
+    ConfiguracionTransicion.objects.create(flujo=flujo, estado_origen=revision, estado_destino=aprobada)
+    return {"captura": captura, "revision": revision, "aprobada": aprobada, "flujo": flujo}
+```
+
+## Test de una transición exitosa
+
+```python
+def test_transition_avanza_estado(flujo_basico, django_user_model):
+    user = django_user_model.objects.create_user("alice")
+    solicitud = Solicitud.objects.create(folio="A1", estado=flujo_basico["captura"], monto=150_000)
+
+    result = solicitud.transition("EN_REVISION", user, comentarios="ok")
+
+    solicitud.refresh_from_db()
+    assert solicitud.estado.nombre == "EN_REVISION"
+    assert result["estado_anterior"] == "CAPTURA"
+    assert result["estado_nuevo"] == "EN_REVISION"
+    assert result["seguimiento_id"] is not None
+```
+
+## Test de un predicado que bloquea
+
+```python
+def test_predicado_bloquea_transicion(flujo_basico, django_user_model):
+    from sinpapel.models import CondicionTransicion, ConfiguracionTransicion
+    transicion = ConfiguracionTransicion.objects.get(
+        flujo=flujo_basico["flujo"],
+        estado_origen=flujo_basico["revision"],
+        estado_destino=flujo_basico["aprobada"],
+    )
+    CondicionTransicion.objects.create(
+        transicion=transicion,
+        tipo="json_logic",
+        configuracion={"rule": {">=": [{"var": "instance.monto"}, 100_000]}},
+        mensaje_error="Monto insuficiente",
+        orden=1,
+        activo=True,
+    )
+
+    user = django_user_model.objects.create_user("alice")
+    solicitud = Solicitud.objects.create(folio="A1", estado=flujo_basico["revision"], monto=50_000)
+
+    with pytest.raises(ValueError, match="Monto insuficiente"):
+        solicitud.transition("APROBADA", user)
+```
+
+## Test con `FakeBackend` (firma)
+
+```python
+def test_transition_con_firma_fake(flujo_basico, django_user_model):
+    from sinpapel.signing import get_signature_backend
+    user = django_user_model.objects.create_user("alice")
+    backend = get_signature_backend()
+    registro = backend.request_signature(b"contenido", signer=user)
+    assert registro.backend_name == "fake"
+
+    solicitud = Solicitud.objects.create(folio="A1", estado=flujo_basico["revision"], monto=200_000)
+    result = solicitud.transition(
+        "APROBADA", user,
+        firma_payload={"registro_firma_id": registro.id},
+    )
+    assert result["estado_nuevo"] == "APROBADA"
+```
+
+## Fixture RSA keypair (cuando sí pruebas FielBackend)
+
+Solo si específicamente testeas el backend FIEL (no transiciones de
+negocio). Para todo lo demás, `FakeBackend` es suficiente.
+
+```python
+import datetime
+import pytest
+from cryptography import x509
+from cryptography.hazmat.primitives import hashes
+from cryptography.hazmat.primitives.asymmetric import rsa
+from cryptography.x509.oid import NameOID
+
+
+@pytest.fixture
+def keypair_and_cert():
+    pk = rsa.generate_private_key(public_exponent=65537, key_size=2048)
+    name = x509.Name([
+        x509.NameAttribute(NameOID.COUNTRY_NAME, "MX"),
+        x509.NameAttribute(NameOID.ORGANIZATION_NAME, "Test"),
+        x509.NameAttribute(NameOID.COMMON_NAME, "test@example.com"),
+    ])
+    cert = (
+        x509.CertificateBuilder()
+        .subject_name(name)
+        .issuer_name(name)
+        .public_key(pk.public_key())
+        .serial_number(x509.random_serial_number())
+        .not_valid_before(datetime.datetime.utcnow())
+        .not_valid_after(datetime.datetime.utcnow() + datetime.timedelta(days=365))
+        .sign(pk, hashes.SHA256())
+    )
+    return pk, cert
+```
+
+## `history_user` en tests
+
+`HistoryRequestMiddleware` no corre fuera de un request. En tests:
+
+```python
+def test_history_user_es_none_sin_request():
+    s = Solicitud.objects.create(folio="A1", ...)   # creación fuera de request
+    h = s.history.first()
+    assert h.history_user is None        # esperado
+```
+
+Si necesitas atribuir un usuario:
+
+```python
+solicitud._history_user = user
+solicitud.save()
+```
+
+## Testing de webhooks
+
+Backend `"inline"` ejecuta síncronamente; útil en tests:
+
+```python
+@override_settings(SINPAPEL_WEBHOOKS_BACKEND="inline")
+def test_webhook_se_emite(...):
+    ...
+```
+
+Para verificar deliveries sin red real, mockea `requests.post`:
+
+```python
+import responses
+
+@responses.activate
+def test_delivery_outbound(...):
+    responses.add(responses.POST, "https://consumer.example.com/hook", json={}, status=200)
+    # ... ejecutar transición
+    assert len(responses.calls) == 1
+```
+
+## Testing de viewsets DRF
+
+```python
+from rest_framework.test import APIClient
+
+def test_post_transition(flujo_basico, django_user_model):
+    user = django_user_model.objects.create_user("alice", password="x")
+    client = APIClient()
+    client.force_authenticate(user)
+    solicitud = Solicitud.objects.create(folio="A1", estado=flujo_basico["captura"], monto=150_000)
+
+    resp = client.post(
+        f"/sinpapel/api/solicitudes/{solicitud.pk}/transition/",
+        {"target_state": "EN_REVISION", "comentarios": "ok"},
+        format="json",
+    )
+    assert resp.status_code == 201
+    assert resp.json()["estado_nuevo"] == "EN_REVISION"
+```
+
+## Anti-patrones
+
+- **No** uses `FielBackend` real en tests: lento, frágil, requiere FIEL
+  válida.
+- **No** dejes `SINPAPEL_ALLOW_SERVER_SIGNING=True` en `settings/test.py`.
+- **No** uses `bulk_create` en tests cuando quieras verificar historia:
+  no dispara signals (ni de simple-history ni de sinpapel-webhooks).
+- **No** dependas de cache entre tests sin `clear_all()`: LocMemCache
+  comparte memoria de proceso.
+- **No** registres workflows globalmente (decorando módulos top-level)
+  para tests aislados: usa fixtures que registren y luego
+  `WorkflowRegistry.unregister`.
+- **No** crees `WebhookSubscription` con `url` de producción en tests:
+  usa `responses` o `requests-mock`.
+
+## Siguiente paso
+
+- Para CI con Django: combina con `pytest-django` (`pytest --reuse-db`).
+- Para tests E2E del designer (Vue): roadmap S28.x (Playwright); por
+  ahora, Vitest unit tests bastan.
