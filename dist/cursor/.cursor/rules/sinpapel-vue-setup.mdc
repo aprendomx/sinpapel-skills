@@ -1,0 +1,102 @@
+---
+description: "Usar siempre que el usuario instale o integre la librería @aprendomx/sinpapel-vue (widgets Vue 3 de seguimiento de flujos), configure sus peer deps (vue/pinia/quasar), importe @aprendomx/sinpapel-vue/style.css, monte SeguimientoPanel, sobrescriba la tematización --sp-*, cambie el locale (es/en), o pregunte qué es la librería frente a sinpapel-designer. Cubre que CONSUME sinpapel-drf y NO es un backend."
+globs: ["**/sinpapel-vue/**", "**/quasar*.{js,ts,conf,config}"]
+alwaysApply: false
+---
+# sinpapel-vue — instalación y arranque
+
+## Qué es (y qué NO es)
+
+- **Es**: biblioteca de componentes **Vue 3** (`@aprendomx/sinpapel-vue`)
+  para *seguir/operar* una instancia de flujo consumiendo la API REST de
+  `sinpapel-drf`. Widgets `q-*` reutilizan **Quasar**.
+- **No es**: un backend, ni `sinpapel-designer`. `sinpapel-designer` *diseña*
+  flujos (SPA standalone); esta librería *opera* una instancia existente.
+- **No** auto-descubre el `resource` slug (v1): el consumidor lo pasa.
+
+## Instalación
+
+```bash
+npm install @aprendomx/sinpapel-vue
+# peer deps OBLIGATORIAS:
+npm install vue pinia quasar
+```
+
+Peer deps: `vue ^3.5`, `pinia ^3`, `quasar ^2.16`. Quasar no es opcional:
+los widgets usan `q-dialog`, `q-icon`, etc.
+
+## Estilos
+
+Importa el CSS una vez (p.ej. en el entry de la app):
+
+```js
+import '@aprendomx/sinpapel-vue/style.css'
+```
+
+## Quick-start
+
+```vue
+<script setup>
+import axios from 'axios'
+import { SeguimientoPanel } from '@aprendomx/sinpapel-vue'
+import '@aprendomx/sinpapel-vue/style.css'
+
+const http = axios.create({ withCredentials: true })
+</script>
+
+<template>
+  <SeguimientoPanel
+    :axios="http"
+    base-path="/sinpapel/api"
+    resource="solicitudes"
+    :pk="42"
+    current-state="EN_REVISION"
+  />
+</template>
+```
+
+- `resource` = `effective_slug` del modelo decorado con `@workflow_enabled`
+  (ver `sinpapel-drf`). No hay auto-descubrimiento.
+- Si `pk`/`resource` cambian dinámicamente, pasa `:key="pk"` para forzar
+  remount (el panel crea su store desde las props iniciales).
+
+## Exports
+
+Desde `@aprendomx/sinpapel-vue` (ver `src/index.js`): `createSinpapelClient`,
+`buildTransitionRequest`, `useTransition`, `buildSignaturePayload`,
+`useSeguimientoStore`, y los componentes `StateBadge`, `HistoryTimeline`,
+`TransitionDialog`, `PreviewTransitionPanel`, `MetadatosForm`,
+`SlaStatusPanel`, `SeguimientoPanel`.
+
+Detalle por capa: `sinpapel-vue-client`, `sinpapel-vue-components`,
+`sinpapel-vue-store`.
+
+## Tematización
+
+Sobrescribe variables `--sp-*` en tu scope (ver `src/styles/tokens.css`):
+
+```css
+:root {
+  --sp-color-primary: #3a4a5c;
+  --sp-surface: #ffffff;
+  --sp-border: #dfe3e8;
+}
+```
+
+## i18n
+
+`locale` acepta `es` (default) y `en`, sin deps externas:
+
+```vue
+<SeguimientoPanel ... locale="en" />
+```
+
+Nuevo idioma: archivo en `src/locales/` + registro en `useSpLabels.js`.
+
+## Anti-patrones
+
+- ❌ Olvidar `import '@aprendomx/sinpapel-vue/style.css'` → widgets sin estilo.
+- ❌ Omitir Quasar como peer dep → componentes `q-*` rotos.
+- ❌ Esperar que la librería descubra el `resource` slug sola.
+- ❌ Cambiar `pk`/`resource` sin `:key` → el store no se reinicia.
+- ❌ Confundirla con `sinpapel-designer` (diseña flujos, no los opera).
