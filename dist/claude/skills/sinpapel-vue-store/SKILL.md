@@ -24,8 +24,9 @@ const store = useSeguimientoStore({ axios: http, resource: 'solicitudes', pk: 42
 
 `id` interno: `seguimiento-<resource>-<pk>`. **`axios` vive como closure
 const, fuera del estado reactivo** (no es serializable; no debe entrar al
-store). Por eso instancias distintas por `pk` tienen stores distintos —
-remount con `:key` en el componente.
+estado del store — aunque el objeto `client` generado por `makeClient()` sí
+se retorna como parte de la API pública). Por eso instancias distintas por
+`pk` tienen stores distintos — remount con `:key` en el componente.
 
 ### Estado
 `estados`, `historial`, `historialCount`, `metadatos` (`{schema, values}`),
@@ -39,8 +40,9 @@ remount con `:key` en el componente.
   `cargarEstados()` + `cargarHistorial()`.
 - `cargarMetadatos()` / `guardarMetadatos(values)`.
 - `cargarPreview(targetState)` / `evaluarSla()`.
-- `cancel()` → aborta todas las requests en vuelo (`AbortController` por
-  acción).
+  > `cargarPreview` y `evaluarSla` no pasan por el wrapper interno: no marcan `loading` ni setean `error.value` en fallo (sólo limpian su cliente).
+- `cancel()` → aborta todas las requests en vuelo (un `AbortController` por
+  request en vuelo, rastreado en un Set `inFlight` compartido).
 
 ### Cancelación
 Los errores de cancelación (`AbortError`, `CanceledError`, `ERR_CANCELED`)

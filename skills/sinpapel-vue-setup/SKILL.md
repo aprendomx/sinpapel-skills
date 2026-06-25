@@ -6,7 +6,7 @@ tested_against:
   - sinpapel-drf==0.2.1
 applies_to:
   - "**/sinpapel-vue/**"
-  - "**/quasar*.{js,ts,conf,config}"
+  - "**/quasar.config.*"
 ---
 
 # sinpapel-vue — instalación y arranque

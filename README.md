@@ -2,7 +2,7 @@
 
 Skills multi-proveedor (Claude, Cursor, OpenCode) para el framework
 [sinpapel](https://github.com/aprendomx/sinpapel) y sus paquetes
-(`sinpapel-drf`, `sinpapel-webhooks`, `sinpapel-designer`).
+(`sinpapel-drf`, `sinpapel-webhooks`, `sinpapel-designer`, `sinpapel-vue`).
 
 Las skills **no reimplementan el framework**: encapsulan el conocimiento y las
 mejores prácticas para usarlo, de modo que cualquier agente de IA o
