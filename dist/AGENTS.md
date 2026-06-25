@@ -102,6 +102,12 @@ Usar siempre que el usuario instale o integre la librería @aprendomx/sinpapel-v
 
 Fuente: `skills/sinpapel-vue-setup/SKILL.md`
 
+### sinpapel-vue-store
+
+Usar siempre que el usuario use el store Pinia useSeguimientoStore de sinpapel-vue o sus composables useTransition/useSpLabels, gestione loading granular (estados/historial/metadatos/transicion), cancele requests con cancel(), construya el payload de transición/firma (buildPayload/buildSignaturePayload), valide el formulario de transición, o normalice el historial paginado del backend.
+
+Fuente: `skills/sinpapel-vue-store/SKILL.md`
+
 ### sinpapel-webhooks
 
 Usar siempre que el usuario emita o consuma webhooks con sinpapel-webhooks; configure WebhookSubscription / WebhookEvent / WebhookDelivery / InboundWebhookEvent; use el decorador @webhook_receiver, los backends de entrega inline / outbox / celery, HMAC-SHA256 con X-Sinpapel-Signature, política de reintentos con backoff y dead letter, idempotencia inbound, o el Admin REST API. Cubre el cron del worker y la verificación de firmas desde cliente.
