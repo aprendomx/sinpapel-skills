@@ -2,7 +2,7 @@
 
 Skills multi-proveedor (Claude, Cursor, OpenCode) para el framework
 [sinpapel](https://github.com/aprendomx/sinpapel) y sus paquetes
-(`sinpapel-drf`, `sinpapel-webhooks`, `sinpapel-designer`).
+(`sinpapel-drf`, `sinpapel-webhooks`, `sinpapel-designer`, `sinpapel-vue`).
 
 Las skills **no reimplementan el framework**: encapsulan el conocimiento y las
 mejores prácticas para usarlo, de modo que cualquier agente de IA o
@@ -10,7 +10,7 @@ desarrollador pueda construir un sistema de trámites sobre sinpapel sin
 releer todo el código fuente.
 
 **Versiones objetivo:** `sinpapel==0.5.1`, `sinpapel-drf==0.2.1`,
-`sinpapel-webhooks==0.2.1`, `sinpapel-designer` @ rama `main` (S27.8+).
+`sinpapel-webhooks==0.2.1`, `sinpapel-designer` @ rama `main` (S27.8+), `sinpapel-vue@0.1.0`.
 
 ## Arquitectura: una sola fuente de verdad
 
@@ -53,6 +53,10 @@ deben editarse a mano**: los cambios viven en la fuente canónica.
 | `sinpapel-drf` | API REST: `expose_endpoints`, `SinpapelRouter`, dispatch de firma. |
 | `sinpapel-webhooks` | Outbox + HMAC + reintentos + inbound idempotente. |
 | `sinpapel-designer` | SPA Vue/Quasar standalone, round-trip JSON v0.2. |
+| `sinpapel-vue-setup` | Instalación de `@aprendomx/sinpapel-vue`, peer deps, `style.css`, temas `--sp-*`, i18n, quick-start. |
+| `sinpapel-vue-client` | `createSinpapelClient`, 7 métodos → endpoints `sinpapel-drf`, `AbortController`, `buildTransitionRequest`. |
+| `sinpapel-vue-components` | 7 widgets (`SeguimientoPanel`…), props/emits, a11y, firma polimórfica en `TransitionDialog`. |
+| `sinpapel-vue-store` | Store Pinia `useSeguimientoStore`, composables `useTransition`/`useSpLabels`, loading granular, `cancel()`. |
 | `sinpapel-testing` | `FakeBackend`, fixture RSA keypair, settings de test, `WorkflowRegistry.unregister()`. |
 
 ## Generar las variantes por proveedor
