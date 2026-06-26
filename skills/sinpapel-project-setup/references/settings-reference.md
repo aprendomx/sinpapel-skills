@@ -105,5 +105,5 @@ grep -rn 'settings\.\bSINPAPEL_' /Users/jadrians/aprendo/sinpapel/
 ```
 
 Cada uso en el código fuente es vinculante; lo que aparece arriba es la
-foto del momento (v0.5.1). Si trabajas contra otra versión, valida los
+foto del momento (v0.6.0). Si trabajas contra otra versión, valida los
 defaults contra el repo.
