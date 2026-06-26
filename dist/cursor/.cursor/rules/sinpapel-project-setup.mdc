@@ -1,5 +1,5 @@
 ---
-description: "Usar siempre que el usuario instale sinpapel en un proyecto Django nuevo o existente, configure INSTALLED_APPS, MIDDLEWARE o cualquier setting con prefijo SINPAPEL_*; mencione errores como \"Estado no resuelto\" / \"history_user is None\" / \"AppRegistryNotReady\"; o pregunte por dependencias (django-simple-history, cryptography), versiones soportadas o el orden correcto de las apps. Cubre el primer migrate, la instalación desde git@v0.5.1 y la verificación post-setup."
+description: "Usar siempre que el usuario instale sinpapel en un proyecto Django nuevo o existente, configure INSTALLED_APPS, MIDDLEWARE o cualquier setting con prefijo SINPAPEL_*; mencione errores como \"Estado no resuelto\" / \"history_user is None\" / \"AppRegistryNotReady\"; o pregunte por dependencias (django-simple-history, cryptography), versiones soportadas o el orden correcto de las apps. Cubre el primer migrate, la instalación desde git@v0.6.0 y la verificación post-setup."
 globs: ["**/settings*.py", "**/requirements*.txt", "**/pyproject.toml"]
 alwaysApply: false
 ---
@@ -18,8 +18,18 @@ alwaysApply: false
 versión exacta:
 
 ```bash
-pip install "sinpapel @ git+ssh://git@github.com/aprendomx/sinpapel.git@v0.5.1"
+pip install "sinpapel @ git+ssh://git@github.com/aprendomx/sinpapel.git@v0.6.0"
 ```
+
+**Al actualizar desde 0.5.x — cambio potencialmente breaking:** desde 0.6.0
+el motor **enforca** los `RequisitoEstadoDocumento` finos en las transiciones
+(antes se sembraban/exportaban pero nunca se evaluaban). Si tu base ya tiene
+requisitos configurados, transiciones que antes pasaban ahora pueden lanzar
+`PermissionError` hasta que existan las `InstanciaDocumento` con el porcentaje
+requerido. Flujos sin requisitos documentales se comportan igual que 0.5.x; el
+flag coarse `expediente_obligatorio` no cambia. Corre `python manage.py migrate`
+para la migración `0004` (añade `InstanciaDocumento.porcentaje`, default 100).
+Detalle en `sinpapel-transitions` y `sinpapel-migrations-seeding`.
 
 Dependencias transitivas que se instalan automáticamente:
 
