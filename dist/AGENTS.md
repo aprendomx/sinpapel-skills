@@ -84,6 +84,30 @@ Usar siempre que el usuario ejecute una transición de estado, llame transition(
 
 Fuente: `skills/sinpapel-transitions/SKILL.md`
 
+### sinpapel-vue-client
+
+Usar siempre que el usuario cree o use el cliente REST JS de sinpapel-vue (createSinpapelClient), llame uno de sus 7 métodos (availableTransitions, history, previewTransition, getMetadatos, patchMetadatos, slaStatus, transition), mapee llamadas a los endpoints de sinpapel-drf, cancele requests con AbortController/signal, o use buildTransitionRequest para codificar el payload de transición (JSON vs multipart FIEL).
+
+Fuente: `skills/sinpapel-vue-client/SKILL.md`
+
+### sinpapel-vue-components
+
+Usar siempre que el usuario use o parametrice los componentes Vue de sinpapel-vue (SeguimientoPanel, StateBadge, HistoryTimeline, TransitionDialog, PreviewTransitionPanel, MetadatosForm, SlaStatusPanel), sus props/emits, la composición de pestañas del panel, el remount con :key, la accesibilidad del diálogo, o la UI de firma polimórfica (FIEL client/server-side, manual, fake) en TransitionDialog.
+
+Fuente: `skills/sinpapel-vue-components/SKILL.md`
+
+### sinpapel-vue-setup
+
+Usar siempre que el usuario instale o integre la librería @aprendomx/sinpapel-vue (widgets Vue 3 de seguimiento de flujos), configure sus peer deps (vue/pinia/quasar), importe @aprendomx/sinpapel-vue/style.css, monte SeguimientoPanel, sobrescriba la tematización --sp-*, cambie el locale (es/en), o pregunte qué es la librería frente a sinpapel-designer. Cubre que CONSUME sinpapel-drf y NO es un backend.
+
+Fuente: `skills/sinpapel-vue-setup/SKILL.md`
+
+### sinpapel-vue-store
+
+Usar siempre que el usuario use el store Pinia useSeguimientoStore de sinpapel-vue o sus composables useTransition/useSpLabels, gestione loading granular (estados/historial/metadatos/transicion), cancele requests con cancel(), construya el payload de transición/firma (buildPayload/buildSignaturePayload), valide el formulario de transición, o normalice el historial paginado del backend.
+
+Fuente: `skills/sinpapel-vue-store/SKILL.md`
+
 ### sinpapel-webhooks
 
 Usar siempre que el usuario emita o consuma webhooks con sinpapel-webhooks; configure WebhookSubscription / WebhookEvent / WebhookDelivery / InboundWebhookEvent; use el decorador @webhook_receiver, los backends de entrega inline / outbox / celery, HMAC-SHA256 con X-Sinpapel-Signature, política de reintentos con backoff y dead letter, idempotencia inbound, o el Admin REST API. Cubre el cron del worker y la verificación de firmas desde cliente.

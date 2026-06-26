@@ -45,6 +45,7 @@ signals, y export/import portable JSON v0.2 (`sinpapel_export_flujo` /
 | `sinpapel-drf` | API REST DRF: 6 acciones por modelo + CRUD admin + portabilidad. | 0.2.1 |
 | `sinpapel-webhooks` | Outbound (signals→outbox→worker, HMAC) + inbound (`@webhook_receiver`). | 0.2.1 |
 | `sinpapel-designer` | SPA Vue 3 + Quasar standalone para diseñar flujos. Round-trip JSON v0.2. | S27.8+ |
+| `sinpapel-vue` | Widgets Vue 3 que consumen `sinpapel-drf` para seguir flujos en el frontend. | 0.1.0 |
 
 ## Qué skill usar para qué tarea
 
@@ -64,6 +65,10 @@ signals, y export/import portable JSON v0.2 (`sinpapel_export_flujo` /
 | Emitir/consumir webhooks de transición. | `sinpapel-webhooks` |
 | Diseñar flujos visualmente. | `sinpapel-designer` |
 | Escribir tests sin tocar FIEL real ni red. | `sinpapel-testing` |
+| Instalar/montar la UI de seguimiento (Vue). | `sinpapel-vue-setup` |
+| Consumir la API REST desde JS (cliente). | `sinpapel-vue-client` |
+| Usar los widgets Vue (panel, diálogo, timeline). | `sinpapel-vue-components` |
+| Store Pinia y composables de seguimiento. | `sinpapel-vue-store` |
 
 ## Glosario
 
@@ -117,6 +122,7 @@ sinpapel @ git+ssh://git@github.com/aprendomx/sinpapel.git@v0.6.0
 sinpapel-drf @ git+ssh://git@github.com/aprendomx/sinpapel-drf.git@v0.2.1
 sinpapel-webhooks @ git+ssh://git@github.com/aprendomx/sinpapel-webhooks.git@v0.2.1
 sinpapel-designer @ rama main (S27.8+)
+sinpapel-vue @ npm @aprendomx/sinpapel-vue@0.1.0
 ```
 
 ## Referencias canónicas
@@ -125,3 +131,4 @@ sinpapel-designer @ rama main (S27.8+)
 - REST: <https://github.com/aprendomx/sinpapel-drf>
 - Webhooks: <https://github.com/aprendomx/sinpapel-webhooks>
 - Designer: <https://github.com/aprendomx/sinpapel-designer>
+- Vue widgets: <https://github.com/aprendomx/sinpapel-vue>
