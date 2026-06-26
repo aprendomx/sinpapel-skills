@@ -130,9 +130,13 @@ def test_predicado_bloquea_transicion(flujo_basico, django_user_model):
     user = django_user_model.objects.create_user("alice")
     solicitud = Solicitud.objects.create(folio="A1", estado=flujo_basico["revision"], monto=50_000)
 
-    with pytest.raises(ValueError, match="Monto insuficiente"):
+    with pytest.raises(PermissionError, match="Monto insuficiente"):
         solicitud.transition("APROBADA", user)
 ```
+
+`cambiar_estado` delega en `puede_cambiar_estado`, así que cualquier bloqueo
+(permiso, predicado o requisito documental) lanza `PermissionError` con el
+`mensaje` del primer bloqueo — no `ValueError`.
 
 ## Test de un requisito documental que bloquea / permite
 
