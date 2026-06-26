@@ -2,7 +2,7 @@
 name: sinpapel-audit-trail
 description: Usar siempre que el usuario configure auditoría, use Trazable, HistoricalRecords o django-simple-history, consulte el historial de un modelo o de SeguimientoWorkflow, mencione HistoryRequestMiddleware o history_user nulo en jobs/background, o pregunte cómo persistir quién y cuándo cambió qué en sinpapel.
 tested_against:
-  - sinpapel==0.5.1
+  - sinpapel==0.6.0
 applies_to:
   - "**/models.py"
   - "**/models/*.py"

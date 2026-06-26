@@ -18,7 +18,7 @@ applies_to:
 pip install "sinpapel-drf @ git+ssh://git@github.com/aprendomx/sinpapel-drf.git@v0.2.1"
 ```
 
-`sinpapel-drf` requiere `sinpapel>=0.5.1` y `djangorestframework>=3.14`.
+`sinpapel-drf` requiere `sinpapel>=0.6.0` y `djangorestframework>=3.14`.
 Si no quieres CRUD admin de condiciones/SLAs, no instales el extra
 `[admin]` — los endpoints quedan disponibles solo si DRF está instalado.
 
