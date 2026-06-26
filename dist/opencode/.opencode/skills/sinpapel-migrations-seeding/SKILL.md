@@ -2,7 +2,7 @@
 name: sinpapel-migrations-seeding
 description: Usar siempre que el usuario siembre datos iniciales de Estado, Etapa, VersionFlujo o ConfiguracionTransicion vía data migrations; importe o exporte flujos con sinpapel_export_flujo / sinpapel_import_flujo (JSON schema v0.2); diseñe migraciones reversibles para catálogos del framework, o pregunte por requisitos documentales (RequisitoEstadoDocumento).
 tested_against:
-  - sinpapel==0.5.1
+  - sinpapel==0.6.0
 applies_to:
   - "**/migrations/*.py"
 ---
@@ -117,6 +117,27 @@ def seed(apps, schema_editor):
     Requisito.objects.get_or_create(estado=revision, tipo_documento=rfc, defaults={"porcentaje": 100})
     Requisito.objects.get_or_create(estado=revision, tipo_documento=ine, defaults={"porcentaje": 100})
 ```
+
+**Desde sinpapel 0.6.0 estos requisitos SE ENFORCAN en la transición**
+(antes solo se sembraban/exportaban). Al avanzar desde el estado que los
+declara, `WorkflowEngine` bloquea si no se satisfacen y `transition()` lanza
+`PermissionError` (ver `sinpapel-transitions`). Semántica del seed:
+
+- **`porcentaje`** (en `RequisitoEstadoDocumento`): porcentaje mínimo exigido
+  para ese tipo de documento en ese estado.
+- **`auto_carga`** (bool, default `False`): si es `True`, el documento lo
+  **genera el sistema** y el requisito **no bloquea** al usuario; solo se
+  enforcan los `auto_carga=False`. Siembra `auto_carga=True` para documentos
+  generados (oficios, acuses), no para los que sube el usuario.
+- El **porcentaje real presente** no vive en el requisito sino en el campo
+  `InstanciaDocumento.porcentaje` (`IntegerField`, 0–100, **default 100** =
+  documento completo, backward-compatible). El actual evaluado es
+  `max(InstanciaDocumento.porcentaje)` de ese tipo ligado a la instancia
+  (0 si no hay ninguno). Campo añadido en la migración reversible `0004`.
+
+El JSON v0.2 de export/import **no cambia**: sigue serializando la **regla**
+(`RequisitoEstadoDocumento`, en `flujo.requisitos`), no el estado por
+instancia (`InstanciaDocumento`/`porcentaje`), que es dato operacional.
 
 ## Predicados / SLAs en migrations
 

@@ -2,7 +2,7 @@
 name: sinpapel-overview
 description: Usar siempre que el usuario mencione el framework sinpapel, sinpapel-drf, sinpapel-webhooks o sinpapel-designer; necesite decidir qué skill cargar; pregunte qué hace el framework, su arquitectura, qué versión usar, o cómo se relacionan sus paquetes; o cuando aparezcan términos como @workflow_enabled, VersionFlujo, ConfiguracionTransicion, SeguimientoWorkflow, FielBackend, RegistroFirma, CondicionTransicion, SLAConfiguracion o MetadatosCapturables sin un contexto más específico.
 tested_against:
-  - sinpapel==0.5.1
+  - sinpapel==0.6.0
   - sinpapel-drf==0.2.1
   - sinpapel-webhooks==0.2.1
   - sinpapel-designer@S27.8
@@ -41,7 +41,7 @@ signals, y export/import portable JSON v0.2 (`sinpapel_export_flujo` /
 
 | Paquete | Qué añade | Versión |
 |---|---|---|
-| `sinpapel` | Núcleo: workflow + audit + signing + predicates + SLA + metadata. | 0.5.1 |
+| `sinpapel` | Núcleo: workflow + audit + signing + predicates + SLA + metadata. | 0.6.0 |
 | `sinpapel-drf` | API REST DRF: 6 acciones por modelo + CRUD admin + portabilidad. | 0.2.1 |
 | `sinpapel-webhooks` | Outbound (signals→outbox→worker, HMAC) + inbound (`@webhook_receiver`). | 0.2.1 |
 | `sinpapel-designer` | SPA Vue 3 + Quasar standalone para diseñar flujos. Round-trip JSON v0.2. | S27.8+ |
@@ -99,8 +99,13 @@ signals, y export/import portable JSON v0.2 (`sinpapel_export_flujo` /
 - **i18n hardcoded en español**: verbose_names, mensajes de error y de
   validación están en español. Override en formularios/serializers si
   necesitas otro idioma.
-- **API 0.x (beta)**: fija `@v0.5.1` (o el tag/commit exacto) en tus
-  dependencias. No uses `>=0.5,<0.6` sin pinear el commit.
+- **API 0.x (beta)**: fija `@v0.6.0` (o el tag/commit exacto) en tus
+  dependencias. No uses `>=0.6,<0.7` sin pinear el commit.
+- **0.6.0 enforca requisitos documentales** (`RequisitoEstadoDocumento`) en
+  las transiciones — antes solo se sembraban/exportaban. Cambio
+  potencialmente breaking al actualizar desde 0.5.x: transiciones con
+  requisitos configurados pueden lanzar `PermissionError` hasta satisfacerlos.
+  Detalle en `sinpapel-transitions` y `sinpapel-project-setup`.
 - **Algunas tablas usan prefijo legado**: la tabla SQL puede no coincidir
   con el nombre del modelo (`db_table` override). No asumas el nombre de
   la tabla; consúltalo en `migrations/0001_initial.py`.
@@ -108,7 +113,7 @@ signals, y export/import portable JSON v0.2 (`sinpapel_export_flujo` /
 ## Versiones contra las que se verificó este conjunto de skills
 
 ```
-sinpapel @ git+ssh://git@github.com/aprendomx/sinpapel.git@v0.5.1
+sinpapel @ git+ssh://git@github.com/aprendomx/sinpapel.git@v0.6.0
 sinpapel-drf @ git+ssh://git@github.com/aprendomx/sinpapel-drf.git@v0.2.1
 sinpapel-webhooks @ git+ssh://git@github.com/aprendomx/sinpapel-webhooks.git@v0.2.1
 sinpapel-designer @ rama main (S27.8+)

@@ -1,7 +1,7 @@
 # Referencia de modelos del workflow
 
 Resumen de campos clave de cada modelo del subsistema workflow.
-Verificado contra `sinpapel/models/workflow.py` (v0.5.1).
+Verificado contra `sinpapel/models/workflow.py` (v0.6.0).
 
 ## `Etapa`
 
@@ -97,18 +97,26 @@ Audit log inmutable de transiciones.
 
 ## `RequisitoEstadoDocumento`
 
-Documentos requeridos para entrar a un estado.
+Documento requerido para **avanzar desde** un estado (el motor enforca los
+requisitos del estado **actual** de la instancia, no del destino).
 
 | Campo | Tipo | Notas |
 |---|---|---|
-| `estado` | `FK(Estado)` | |
+| `estado` | `FK(Estado)` | Estado origen al que aplica el requisito. |
 | `tipo_documento` | `FK(TipoDocumento)` | |
-| `porcentaje` | `IntegerField` | 0–100, default 100. |
-| `auto_carga` | `BooleanField` | Default False. |
+| `porcentaje` | `IntegerField` | 0–100, default 100. Mínimo exigido. |
+| `auto_carga` | `BooleanField` | Default False. `True` = documento que genera el sistema → **no bloquea** la transición. |
 
 `unique_together = (estado, tipo_documento)`.
 
 Con `HistoricalRecords`.
+
+**Desde sinpapel 0.6.0 estos requisitos se enforcan** en la transición (ver
+`sinpapel-transitions`). El porcentaje **presente** por instancia vive en
+`InstanciaDocumento.porcentaje` (`IntegerField`, 0–100, default 100), que liga
+el tipo vía `documento.tipo_documento` y la instancia vía su GFK `target`; el
+actual evaluado es `max(InstanciaDocumento.porcentaje)` de ese tipo, 0 si no
+hay ninguno.
 
 ## Cómo se relacionan
 

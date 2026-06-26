@@ -71,7 +71,11 @@ Métodos inyectados en `Solicitud` por el decorador (definidos en
 - `transition(target_state_name: str, user, **kwargs) -> dict`
 - `preview_transition(target_state_name: str, user) -> dict`
 
-Cómo invocarlos: skill `sinpapel-transitions`.
+Los cuatro se inyectan realmente (`sinpapel/injection.py`); desde 0.6.0
+`preview_transition` también está disponible en la instancia (antes faltaba
+en algunos consumidores). Cómo invocarlos y el reporte que devuelve
+`preview_transition` — incluido el enforce de requisitos documentales — en
+la skill `sinpapel-transitions`.
 
 ## Modelos del framework
 

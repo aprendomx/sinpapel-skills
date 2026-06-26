@@ -3,7 +3,7 @@ name: sinpapel-drf
 description: Usar siempre que el usuario exponga flujos sinpapel por API REST con Django REST Framework, instale sinpapel-drf, use expose_endpoints=True / endpoint_slug en @workflow_enabled, monte SinpapelRouter, llame los endpoints available-transitions / transition / history / preview-transition / metadatos / sla-status, exporte / importe flujos por HTTP, o configure permisos sobre transiciones. Cubre el dispatch polimórfico de firma y el mapeo de errores.
 tested_against:
   - sinpapel-drf==0.2.1
-  - sinpapel==0.5.1
+  - sinpapel==0.6.0
 applies_to:
   - "**/urls.py"
   - "**/viewsets.py"
@@ -87,6 +87,16 @@ Para cada modelo con `expose_endpoints=True` se generan 6 acciones en
 
 Detalle de payloads en `references/endpoints-reference.md`.
 
+**`preview-transition` desde sinpapel 0.6.0:** el método de instancia
+`instance.preview_transition(target_state, user)` ya está inyectado por
+`@workflow_enabled` (antes faltaba y forzaba a invocar
+`WorkflowEngine().preview_transition(...)` directamente como workaround). Un
+viewset propio puede volver al método de instancia. Además, su reporte ahora
+enforca requisitos documentales finos: `documentos_faltantes` puede traer
+entradas `{"tipo": "requisito_documento", ...}` y `POST /transition/` responde
+**403** (`PermissionError`) si un requisito no se satisface (ver
+`sinpapel-transitions`).
+
 ## Endpoints admin (top-level)
 
 | Método + URL | Acción | Permiso |
@@ -139,7 +149,7 @@ curl -X POST -H "Authorization: Token <t>" \
 
 | Excepción | HTTP |
 |---|---|
-| `PermissionError` (grupos_permitidos) | 403 |
+| `PermissionError` (grupos_permitidos, predicado, o requisito documental faltante desde 0.6.0) | 403 |
 | `ValueError` | 400 |
 | `SignatureValidationError` | 400 (`{"signature": [...]}`) |
 | `SignatureBackendNotConfiguredError` | 400 |

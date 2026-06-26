@@ -2,7 +2,7 @@
 name: sinpapel-testing
 description: Usar siempre que el usuario escriba tests de un proyecto que use sinpapel, configure pytest / pytest-django, use FakeBackend en lugar de FielBackend real, genere un keypair RSA en fixtures, limpie el cache del framework entre tests, use WorkflowRegistry.unregister, mockee transiciones o verifique history_user en tests sin request. Cubre los settings de test y los patrones de aislamiento.
 tested_against:
-  - sinpapel==0.5.1
+  - sinpapel==0.6.0
   - sinpapel-drf==0.2.1
   - sinpapel-webhooks==0.2.1
 applies_to:
@@ -133,6 +133,57 @@ def test_predicado_bloquea_transicion(flujo_basico, django_user_model):
     with pytest.raises(ValueError, match="Monto insuficiente"):
         solicitud.transition("APROBADA", user)
 ```
+
+## Test de un requisito documental que bloquea / permite
+
+Desde sinpapel 0.6.0 los `RequisitoEstadoDocumento` del estado actual se
+enforcan: un faltante aparece en `preview_transition()["documentos_faltantes"]`
+y `transition()` lanza `PermissionError`.
+
+```python
+def test_requisito_documental_bloquea_y_permite(flujo_basico, django_user_model):
+    from sinpapel.models import (
+        TipoDocumento, Documento, InstanciaDocumento, RequisitoEstadoDocumento,
+    )
+    user = django_user_model.objects.create_user("alice")
+
+    # Requisito fino en el estado ORIGEN (donde está la instancia al avanzar).
+    rfc = TipoDocumento.objects.create(nombre="RFC", activo=True)
+    RequisitoEstadoDocumento.objects.create(
+        estado=flujo_basico["revision"],
+        tipo_documento=rfc,
+        porcentaje=100,
+        auto_carga=False,   # auto_carga=True NO bloquearía (lo genera el sistema)
+    )
+    solicitud = Solicitud.objects.create(
+        folio="A1", estado=flujo_basico["revision"], monto=200_000,
+    )
+
+    # 1) Sin el documento: aparece en documentos_faltantes y bloquea.
+    preview = solicitud.preview_transition("APROBADA", user)
+    assert preview["permitido"] is False
+    faltante = next(
+        d for d in preview["documentos_faltantes"]
+        if d["tipo"] == "requisito_documento" and d["tipo_documento"] == "RFC"
+    )
+    assert faltante["porcentaje_requerido"] == 100
+    assert faltante["porcentaje_actual"] == 0
+    with pytest.raises(PermissionError):
+        solicitud.transition("APROBADA", user)
+
+    # 2) Con una InstanciaDocumento al 100% ligada a la instancia: satisface.
+    doc = Documento.objects.create(nombre="RFC de Alice", valor="RFC123", tipo_documento=rfc)
+    InstanciaDocumento.objects.create(documento=doc, target=solicitud, porcentaje=100)
+
+    preview2 = solicitud.preview_transition("APROBADA", user)
+    assert all(d["tipo"] != "requisito_documento" for d in preview2["documentos_faltantes"])
+    result = solicitud.transition("APROBADA", user)
+    assert result["estado_nuevo"] == "APROBADA"
+```
+
+`InstanciaDocumento.porcentaje` default 100 (documento completo). El motor
+toma `max(InstanciaDocumento.porcentaje)` del tipo ligado a la instancia vía
+la GFK `target`; 0 si no hay ninguno.
 
 ## Test con `FakeBackend` (firma)
 

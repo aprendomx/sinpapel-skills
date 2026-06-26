@@ -103,14 +103,39 @@ Devuelve un dict sin mutar nada (no ejecuta side effects ni firma):
 ```python
 {
     "permitido": False,
-    "razones_bloqueo": [{"tipo": "predicado", "mensaje": "Monto < $100,000"}],
-    "documentos_faltantes": [{"tipo_documento": "RFC", "porcentaje": 100}],
+    "razones_bloqueo": [{"tipo": "documento", "mensaje": "Falta el documento 'RFC' (requerido 100%, actual 0%)."}],
+    "documentos_faltantes": [
+        # Flag coarse Estado.expediente_obligatorio (sin tipo):
+        {"tipo": "expediente", "mensaje": "Se requiere adjuntar al menos un documento..."},
+        # Regla fina RequisitoEstadoDocumento (desde 0.6.0):
+        {
+            "tipo": "requisito_documento",
+            "tipo_documento": "RFC",
+            "porcentaje_requerido": 100,
+            "porcentaje_actual": 0,
+            "mensaje": "Falta el documento 'RFC' (requerido 100%, actual 0%).",
+        },
+    ],
     "predicados_fallidos": [...],
     "aprobadores_requeridos": [...],
     "side_effects": ["DISPERSADA"],   # nombres de handlers que se invocarían
     "historial_reciente": [...],
 }
 ```
+
+**Desde sinpapel 0.6.0** los `RequisitoEstadoDocumento` del estado actual
+**se enforcan** en la transición (antes solo se sembraban/exportaban). Cada
+faltante fino agrega su entrada `requisito_documento` a `documentos_faltantes`
+y pone `permitido=False`; el porcentaje actual sale del campo
+`InstanciaDocumento.porcentaje` (default 100). Requisitos con `auto_carga=True`
+(documento que genera el sistema) **no bloquean**. El flag coarse
+`Estado.expediente_obligatorio` sigue produciendo la entrada `expediente`.
+Detalle de modelado/semántica en `sinpapel-migrations-seeding`.
+
+Como `cambiar_estado` delega en `puede_cambiar_estado`, **un requisito
+documental no satisfecho hace que `transition()` lance `PermissionError`**
+(con el `mensaje` del primer bloqueo), igual que un permiso o predicado
+fallido.
 
 Si `SINPAPEL_EMIT_PREVIEW_EVENTS=True`, además se dispara el signal
 `transition_preview_requested` por cada preview.
@@ -119,8 +144,8 @@ Si `SINPAPEL_EMIT_PREVIEW_EVENTS=True`, además se dispara el signal
 
 | Excepción | Significado | HTTP sugerido |
 |---|---|---|
-| `PermissionError` | El usuario no pertenece a ningún `grupos_permitidos` de esa transición. | 403 |
-| `ValueError` | El nombre del estado destino no es válido, no existe la transición desde el estado actual, o falta un requisito. | 400 |
+| `PermissionError` | Cualquier bloqueo de `puede_cambiar_estado`: el usuario no pertenece a ningún `grupos_permitidos`, un predicado falla, o (desde 0.6.0) falta un requisito documental. Lleva el `mensaje` del primer bloqueo. | 403 |
+| `ValueError` | El nombre del estado destino no es válido o no existe la transición desde el estado actual. | 400 |
 | `sinpapel.signing.exceptions.SignatureValidationError` | El `firma_payload` no verifica. | 400 |
 | `sinpapel.signing.exceptions.SignatureBackendNotConfiguredError` | `SINPAPEL_SIGNATURE_BACKEND` apunta a algo no importable. | 500 |
 | `WorkflowConfigurationError` | El flujo está mal configurado (estados inactivos, sin aristas). | 500 |

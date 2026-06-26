@@ -2,7 +2,7 @@
 name: sinpapel-workflow-modeling
 description: Usar siempre que el usuario decore un modelo Django con @workflow_enabled, defina Estado / VersionFlujo / ConfiguracionTransicion, implemente resolve_workflow_version(), consulte el WorkflowRegistry, o pregunte cómo modelar máquinas de estado en sinpapel. Cubre también nombres de campos requeridos (state_field, workflow_key, version_field, expose_endpoints, endpoint_slug) y errores como WorkflowConfigurationError o WorkflowDuplicateKeyError.
 tested_against:
-  - sinpapel==0.5.1
+  - sinpapel==0.6.0
 applies_to:
   - "**/models.py"
   - "**/models/*.py"
@@ -76,7 +76,11 @@ Métodos inyectados en `Solicitud` por el decorador (definidos en
 - `transition(target_state_name: str, user, **kwargs) -> dict`
 - `preview_transition(target_state_name: str, user) -> dict`
 
-Cómo invocarlos: skill `sinpapel-transitions`.
+Los cuatro se inyectan realmente (`sinpapel/injection.py`); desde 0.6.0
+`preview_transition` también está disponible en la instancia (antes faltaba
+en algunos consumidores). Cómo invocarlos y el reporte que devuelve
+`preview_transition` — incluido el enforce de requisitos documentales — en
+la skill `sinpapel-transitions`.
 
 ## Modelos del framework
 
