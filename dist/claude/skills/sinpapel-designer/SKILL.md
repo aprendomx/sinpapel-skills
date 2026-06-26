@@ -3,7 +3,7 @@ name: sinpapel-designer
 description: Usar siempre que el usuario diseñe visualmente un flujo sinpapel, instale o ejecute sinpapel-designer (Vue 3 + Quasar + Vue Flow), exporte / importe JSON v0.2, integre el designer con un backend Django vía sinpapel_export_flujo / sinpapel_import_flujo, configure el generador IA (Anthropic / OpenAI / OpenCode), o pregunte cómo embeber el designer en otra app (S27.9). Cubre que es una SPA standalone, NO un paquete Django.
 tested_against:
   - sinpapel-designer@S27.8
-  - sinpapel==0.5.1
+  - sinpapel==0.6.0
 applies_to:
   - "**/sinpapel-designer/**"
   - "**/quasar.config.*"

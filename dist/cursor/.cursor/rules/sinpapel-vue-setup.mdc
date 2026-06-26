@@ -63,10 +63,16 @@ const http = axios.create({ withCredentials: true })
 ## Exports
 
 Desde `@aprendomx/sinpapel-vue` (ver `src/index.js`): `createSinpapelClient`,
-`buildTransitionRequest`, `useTransition`, `buildSignaturePayload`,
-`useSeguimientoStore`, y los componentes `StateBadge`, `HistoryTimeline`,
-`TransitionDialog`, `PreviewTransitionPanel`, `MetadatosForm`,
-`SlaStatusPanel`, `SeguimientoPanel`.
+`buildTransitionRequest`, `buildDocumentoUpload` (0.2.0), `useTransition`,
+`buildSignaturePayload`, `useSeguimientoStore`, y los componentes
+`StateBadge`, `HistoryTimeline`, `TransitionDialog`, `PreviewTransitionPanel`,
+`MetadatosForm`, `SlaStatusPanel`, `RequisitosPanel` (0.2.0),
+`DocumentosPanel` (0.2.0), `SeguimientoPanel`.
+
+**0.2.0** añade soporte de archivos contra los endpoints de documentos de
+`sinpapel-drf` v0.3.0: el `SeguimientoPanel` gana las pestañas **Requisitos**
+y **Documentos**. Si el backend corre `sinpapel-drf < 0.3.0`, esas pestañas
+fallan al cargar — mantén las versiones alineadas.
 
 Detalle por capa: `sinpapel-vue-client`, `sinpapel-vue-components`,
 `sinpapel-vue-store`.

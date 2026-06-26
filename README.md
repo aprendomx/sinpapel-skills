@@ -9,9 +9,9 @@ mejores prácticas para usarlo, de modo que cualquier agente de IA o
 desarrollador pueda construir un sistema de trámites sobre sinpapel sin
 releer todo el código fuente.
 
-**Versiones objetivo:** `sinpapel==0.6.0`, `sinpapel-drf==0.2.1`,
+**Versiones objetivo:** `sinpapel==0.6.0`, `sinpapel-drf==0.3.0`,
 `sinpapel-webhooks==0.2.1`, `sinpapel-designer` @ rama `main` (S27.8+),
-`sinpapel-vue@0.1.0`.
+`sinpapel-vue@0.2.0`.
 
 ## Arquitectura: una sola fuente de verdad
 
@@ -51,12 +51,12 @@ deben editarse a mano**: los cambios viven en la fuente canónica.
 | `sinpapel-signing` | `SignatureBackend` Port/Adapter, `FielBackend` Modos A/B, custom backends. |
 | `sinpapel-audit-trail` | `Trazable`, `SeguimientoWorkflow`, simple-history, `history_user`. |
 | `sinpapel-migrations-seeding` | Sembrar flujos vía data migrations y JSON v0.2 portable. |
-| `sinpapel-drf` | API REST: `expose_endpoints`, `SinpapelRouter`, dispatch de firma. |
+| `sinpapel-drf` | API REST: `expose_endpoints`, `SinpapelRouter`, dispatch de firma, endpoints `documentos`/`requisitos`. |
 | `sinpapel-webhooks` | Outbox + HMAC + reintentos + inbound idempotente. |
 | `sinpapel-designer` | SPA Vue/Quasar standalone, round-trip JSON v0.2. |
 | `sinpapel-vue-setup` | Instalación de `@aprendomx/sinpapel-vue`, peer deps, `style.css`, temas `--sp-*`, i18n, quick-start. |
-| `sinpapel-vue-client` | `createSinpapelClient`, 7 métodos → endpoints `sinpapel-drf`, `AbortController`, `buildTransitionRequest`. |
-| `sinpapel-vue-components` | 7 widgets (`SeguimientoPanel`…), props/emits, a11y, firma polimórfica en `TransitionDialog`. |
+| `sinpapel-vue-client` | `createSinpapelClient`, 11 métodos → endpoints `sinpapel-drf`, `AbortController`, `buildTransitionRequest`/`buildDocumentoUpload`. |
+| `sinpapel-vue-components` | 9 widgets (`SeguimientoPanel`…, `RequisitosPanel`/`DocumentosPanel`), props/emits, a11y, firma polimórfica en `TransitionDialog`. |
 | `sinpapel-vue-store` | Store Pinia `useSeguimientoStore`, composables `useTransition`/`useSpLabels`, loading granular, `cancel()`. |
 | `sinpapel-testing` | `FakeBackend`, fixture RSA keypair, settings de test, `WorkflowRegistry.unregister()`. |
 

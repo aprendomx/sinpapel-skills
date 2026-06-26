@@ -2,8 +2,8 @@
 name: sinpapel-vue-setup
 description: Usar siempre que el usuario instale o integre la librería @aprendomx/sinpapel-vue (widgets Vue 3 de seguimiento de flujos), configure sus peer deps (vue/pinia/quasar), importe @aprendomx/sinpapel-vue/style.css, monte SeguimientoPanel, sobrescriba la tematización --sp-*, cambie el locale (es/en), o pregunte qué es la librería frente a sinpapel-designer. Cubre que CONSUME sinpapel-drf y NO es un backend.
 tested_against:
-  - sinpapel-vue@0.1.0
-  - sinpapel-drf==0.2.1
+  - sinpapel-vue@0.2.0
+  - sinpapel-drf==0.3.0
 applies_to:
   - "**/sinpapel-vue/**"
   - "**/quasar.config.*"
@@ -69,10 +69,16 @@ const http = axios.create({ withCredentials: true })
 ## Exports
 
 Desde `@aprendomx/sinpapel-vue` (ver `src/index.js`): `createSinpapelClient`,
-`buildTransitionRequest`, `useTransition`, `buildSignaturePayload`,
-`useSeguimientoStore`, y los componentes `StateBadge`, `HistoryTimeline`,
-`TransitionDialog`, `PreviewTransitionPanel`, `MetadatosForm`,
-`SlaStatusPanel`, `SeguimientoPanel`.
+`buildTransitionRequest`, `buildDocumentoUpload` (0.2.0), `useTransition`,
+`buildSignaturePayload`, `useSeguimientoStore`, y los componentes
+`StateBadge`, `HistoryTimeline`, `TransitionDialog`, `PreviewTransitionPanel`,
+`MetadatosForm`, `SlaStatusPanel`, `RequisitosPanel` (0.2.0),
+`DocumentosPanel` (0.2.0), `SeguimientoPanel`.
+
+**0.2.0** añade soporte de archivos contra los endpoints de documentos de
+`sinpapel-drf` v0.3.0: el `SeguimientoPanel` gana las pestañas **Requisitos**
+y **Documentos**. Si el backend corre `sinpapel-drf < 0.3.0`, esas pestañas
+fallan al cargar — mantén las versiones alineadas.
 
 Detalle por capa: `sinpapel-vue-client`, `sinpapel-vue-components`,
 `sinpapel-vue-store`.

@@ -1,9 +1,9 @@
 ---
 name: sinpapel-vue-components
-description: Usar siempre que el usuario use o parametrice los componentes Vue de sinpapel-vue (SeguimientoPanel, StateBadge, HistoryTimeline, TransitionDialog, PreviewTransitionPanel, MetadatosForm, SlaStatusPanel), sus props/emits, la composición de pestañas del panel, el remount con :key, la accesibilidad del diálogo, o la UI de firma polimórfica (FIEL client/server-side, manual, fake) en TransitionDialog.
+description: Usar siempre que el usuario use o parametrice los componentes Vue de sinpapel-vue (SeguimientoPanel, StateBadge, HistoryTimeline, TransitionDialog, PreviewTransitionPanel, MetadatosForm, SlaStatusPanel, RequisitosPanel, DocumentosPanel), sus props/emits, la composición de pestañas del panel, el remount con :key, la accesibilidad del diálogo, la UI de cumplimiento/carga documental, o la UI de firma polimórfica (FIEL client/server-side, manual, fake) en TransitionDialog.
 tested_against:
-  - sinpapel-vue@0.1.0
-  - sinpapel-drf==0.2.1
+  - sinpapel-vue@0.2.0
+  - sinpapel-drf==0.3.0
 applies_to:
   - "**/sinpapel-vue/**"
   - "**/*.vue"
@@ -13,8 +13,11 @@ applies_to:
 
 ## SeguimientoPanel (compuesto)
 
-Widget principal: badge de estado + pestañas (Historial / Previsualizar /
-Metadatos / SLA) + diálogo de transición. Crea su propio store desde props.
+Widget principal: badge de estado + pestañas (Historial / Requisitos /
+Documentos / Previsualizar / Metadatos / SLA) + diálogo de transición. Crea
+su propio store desde props. Las pestañas **Requisitos** y **Documentos**
+(0.2.0) requieren `sinpapel-drf >= 0.3.0`; la pestaña SLA solo aparece con
+`canEvaluateSla`.
 
 | Prop | Tipo | Req | Default |
 |---|---|---|---|
@@ -57,6 +60,20 @@ schema de metadatos del backend.
 
 ### SlaStatusPanel
 Props: `client` (req). Evalúa SLAs (admin only).
+
+### RequisitosPanel (0.2.0)
+Props: `client` (req). Checklist **read-only** del cumplimiento documental
+del estado actual (`client.requisitos()`). Pinta ✓/○ por requisito con
+`porcentaje_actual / porcentaje_requerido` y mensaje. Carga al montar;
+`defineExpose({ load, items })` para refrescar desde fuera.
+
+### DocumentosPanel (0.2.0)
+Props: `client` (req). Emits: `changed`. Lista las `InstanciaDocumento` del
+trámite + formulario de carga (`archivo` requerido, `documento` **o**
+`tipo_documento`, `porcentaje`) y borrado. Sube vía `client.uploadDocumento`
+y borra vía `client.deleteDocumento`. Emite `changed` tras subir/borrar para
+que el contenedor refresque requisitos. Usa el `client` directo (no toca el
+store). Requiere `sinpapel-drf >= 0.3.0`.
 
 ## Firma polimórfica (en TransitionDialog)
 

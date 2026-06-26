@@ -1,9 +1,9 @@
 ---
 name: sinpapel-vue-client
-description: Usar siempre que el usuario cree o use el cliente REST JS de sinpapel-vue (createSinpapelClient), llame uno de sus 7 métodos (availableTransitions, history, previewTransition, getMetadatos, patchMetadatos, slaStatus, transition), mapee llamadas a los endpoints de sinpapel-drf, cancele requests con AbortController/signal, o use buildTransitionRequest para codificar el payload de transición (JSON vs multipart FIEL).
+description: Usar siempre que el usuario cree o use el cliente REST JS de sinpapel-vue (createSinpapelClient), llame uno de sus 11 métodos (availableTransitions, history, previewTransition, getMetadatos, patchMetadatos, slaStatus, listDocumentos, uploadDocumento, deleteDocumento, requisitos, transition), mapee llamadas a los endpoints de sinpapel-drf, cancele requests con AbortController/signal, o use buildTransitionRequest / buildDocumentoUpload para codificar el payload (JSON vs multipart FIEL / multipart de documentos).
 tested_against:
-  - sinpapel-vue@0.1.0
-  - sinpapel-drf==0.2.1
+  - sinpapel-vue@0.2.0
+  - sinpapel-drf==0.3.0
 applies_to:
   - "**/sinpapel-vue/**"
   - "**/client/sinpapelClient.js"
@@ -39,10 +39,36 @@ base se calcula en cada llamada: `{basePath}/{resource}/{pk}` (lee
 | `getMetadatos()` | GET | `…/metadatos/` | — |
 | `patchMetadatos(values)` | PATCH | `…/metadatos/` | `values` |
 | `slaStatus()` | POST | `…/sla-status/` | `null` |
+| `listDocumentos()` | GET | `…/documentos/` | — |
+| `uploadDocumento(payload)` | POST | `…/documentos/` | multipart (`buildDocumentoUpload`) |
+| `deleteDocumento(docId)` | DELETE | `…/documentos/{docId}/` | — |
+| `requisitos()` | GET | `…/requisitos/` | — |
 | `transition(payload)` | POST | `…/transition/` | JSON o multipart |
 
 Cada método retorna `data` de axios. Todos propagan `signal` si se pasó al
-crear el cliente.
+crear el cliente. Los cuatro métodos de documentos (`listDocumentos`,
+`uploadDocumento`, `deleteDocumento`, `requisitos`) requieren `sinpapel-drf
+>= 0.3.0`.
+
+## Carga de documentos — `buildDocumentoUpload`
+
+`uploadDocumento(payload)` codifica el `FormData` con `buildDocumentoUpload`.
+El payload acepta `archivo` (File/Blob, requerido) más `documento` (PK) **o**
+`tipo_documento` (PK), y los opcionales `porcentaje` y `metadatos`:
+
+```js
+await client.uploadDocumento({
+  archivo: file,            // File/Blob
+  tipo_documento: 3,        // o documento: 12
+  porcentaje: 100,          // opcional, default 100 en el backend
+  metadatos: { folio: 'A-12' },  // se serializa a JSON
+})
+```
+
+`buildDocumentoUpload` omite los opcionales `null`/`undefined` (para que el
+serializer use sus defaults) y JSON-encodea `metadatos` (el `JSONField` de
+DRF lo parsea desde el string multipart). Devuelve `{ body, config }` con
+`Content-Type: multipart/form-data`; normalmente no lo llamas directo.
 
 ## Payload de transición — `buildTransitionRequest`
 

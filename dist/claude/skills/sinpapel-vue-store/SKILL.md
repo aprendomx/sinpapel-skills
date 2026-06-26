@@ -1,9 +1,9 @@
 ---
 name: sinpapel-vue-store
-description: Usar siempre que el usuario use el store Pinia useSeguimientoStore de sinpapel-vue o sus composables useTransition/useSpLabels, gestione loading granular (estados/historial/metadatos/transicion), cancele requests con cancel(), construya el payload de transición/firma (buildPayload/buildSignaturePayload), valide el formulario de transición, o normalice el historial paginado del backend.
+description: Usar siempre que el usuario use el store Pinia useSeguimientoStore de sinpapel-vue o sus composables useTransition/useSpLabels, gestione loading granular (estados/historial/metadatos/transicion/documentos/requisitos), cancele requests con cancel(), cargue o suba documentos (cargarDocumentos/cargarRequisitos/subirDocumento/eliminarDocumento), construya el payload de transición/firma (buildPayload/buildSignaturePayload), valide el formulario de transición, o normalice el historial paginado del backend.
 tested_against:
-  - sinpapel-vue@0.1.0
-  - sinpapel-drf==0.2.1
+  - sinpapel-vue@0.2.0
+  - sinpapel-drf==0.3.0
 applies_to:
   - "**/sinpapel-vue/**"
   - "**/stores/useSeguimientoStore.js"
@@ -30,8 +30,9 @@ se retorna como parte de la API pública). Por eso instancias distintas por
 
 ### Estado
 `estados`, `historial`, `historialCount`, `metadatos` (`{schema, values}`),
-`preview`, `slaActions`, `error`, y `loading` granular:
-`{ estados, historial, metadatos, transicion }`.
+`preview`, `slaActions`, `documentos`, `requisitos`, `error`, y `loading`
+granular: `{ estados, historial, metadatos, transicion, documentos,
+requisitos }`.
 
 ### Acciones
 - `cargarEstados()` → `availableTransitions()`.
@@ -39,10 +40,17 @@ se retorna como parte de la API pública). Por eso instancias distintas por
 - `ejecutarTransicion(payload)` → `transition()` y luego recarga
   `cargarEstados()` + `cargarHistorial()`.
 - `cargarMetadatos()` / `guardarMetadatos(values)`.
+- `cargarDocumentos()` → `listDocumentos()` (loading `documentos`).
+- `cargarRequisitos()` → `requisitos()` (loading `requisitos`).
+- `subirDocumento(payload)` / `eliminarDocumento(docId)` → suben/borran y
+  luego refrescan **lista + requisitos** (`cargarDocumentos()` +
+  `cargarRequisitos()`); ambas marcan loading `documentos`.
 - `cargarPreview(targetState)` / `evaluarSla()`.
   > `cargarPreview` y `evaluarSla` no pasan por el wrapper interno: no marcan `loading` ni setean `error.value` en fallo (sólo limpian su cliente).
 - `cancel()` → aborta todas las requests en vuelo (un `AbortController` por
   request en vuelo, rastreado en un Set `inFlight` compartido).
+
+Las acciones de documentos requieren `sinpapel-drf >= 0.3.0`.
 
 ### Cancelación
 Los errores de cancelación (`AbortError`, `CanceledError`, `ERR_CANCELED`)

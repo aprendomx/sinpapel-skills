@@ -2,7 +2,7 @@
 
 Detalle exacto de payloads y responses. Para entender el flujo completo,
 empieza por la skill principal `sinpapel-drf`. Verificado contra
-v0.2.1.
+v0.3.0.
 
 ## `GET /<slug>/<pk>/available-transitions/`
 
@@ -34,7 +34,9 @@ Devuelve estados destino válidos (sin filtrar por permisos).
     {"tipo": "predicado", "mensaje": "Monto < $100,000"}
   ],
   "documentos_faltantes": [
-    {"tipo_documento": "RFC", "porcentaje": 100}
+    {"tipo": "requisito_documento", "tipo_documento": "RFC",
+     "porcentaje_requerido": 100, "porcentaje_actual": 0,
+     "mensaje": "Falta el documento 'RFC' (requerido 100%, actual 0%)."}
   ],
   "predicados_fallidos": [...],
   "aprobadores_requeridos": [...],
@@ -195,6 +197,76 @@ puede ser `null` si el cambio ocurrió fuera de un request.
 Validación: rechaza keys fuera de `SCHEMA_METADATOS` con 400.
 
 **Response 200:** valores actualizados.
+
+## `GET /<slug>/<pk>/documentos/` (0.3.0)
+
+Lista las `InstanciaDocumento` ligadas al trámite vía la GFK `target`,
+`-creado` primero.
+
+**Response 200:**
+
+```json
+[
+  {
+    "id": 91,
+    "documento": 12,
+    "tipo_documento": "Comprobante de domicilio",
+    "archivo": "/media/instancias_documento/comprobante.pdf",
+    "porcentaje": 100,
+    "creado": "2026-06-26T18:04:11Z"
+  }
+]
+```
+
+## `POST /<slug>/<pk>/documentos/` (0.3.0)
+
+`multipart/form-data`. Sube el `archivo` del usuario y crea una
+`InstanciaDocumento` typed ligada al trámite.
+
+**Campos del request:**
+
+| Campo | Tipo | Notas |
+|---|---|---|
+| `archivo` | file | **Obligatorio.** |
+| `documento` | int (PK) | `documento` **o** `tipo_documento` (al menos uno). |
+| `tipo_documento` | int (PK) | Resuelve el `Documento` si hay exactamente 1 de ese tipo. |
+| `porcentaje` | int 0–100 | Default `100`. Se compara vs `RequisitoEstadoDocumento.porcentaje`. |
+| `metadatos` | string JSON | Opcional. DRF lo parsea desde el multipart. |
+
+Resolución por `tipo_documento`: 0 Documentos → `400` ("envíe 'documento'");
+>1 → `400` ("hay varios; envíe 'documento'"). `autor`/`modificador` se setean
+con `request.user`.
+
+**Response 201:** misma forma que el item de la lista (arriba).
+
+## `DELETE /<slug>/<pk>/documentos/<doc_id>/` (0.3.0)
+
+Borra la `InstanciaDocumento` solo si pertenece al trámite.
+
+- `204` — borrado.
+- `404` — el documento no existe o es de otra instancia.
+
+## `GET /<slug>/<pk>/requisitos/` (0.3.0)
+
+Cumplimiento documental del estado **actual** (proyecta
+`WorkflowEngine.evaluar_requisitos_documentales`).
+
+**Response 200:**
+
+```json
+[
+  {"nivel": "expediente", "satisfecho": true, "mensaje": "",
+   "tipo_documento": null, "porcentaje_requerido": null,
+   "porcentaje_actual": null, "auto_carga": false},
+  {"nivel": "requisito_documento", "satisfecho": false,
+   "tipo_documento": "RFC", "porcentaje_requerido": 100,
+   "porcentaje_actual": 0, "auto_carga": false,
+   "mensaje": "Falta el documento 'RFC' (requerido 100%, actual 0%)."}
+]
+```
+
+`porcentaje_actual = max(InstanciaDocumento.porcentaje)` del tipo (0 si no
+hay); `auto_carga=true ⇒ satisfecho=true`.
 
 ## `POST /<slug>/<pk>/sla-status/`
 

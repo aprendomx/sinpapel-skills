@@ -20,7 +20,7 @@ Fuente: `skills/sinpapel-designer/SKILL.md`
 
 ### sinpapel-drf
 
-Usar siempre que el usuario exponga flujos sinpapel por API REST con Django REST Framework, instale sinpapel-drf, use expose_endpoints=True / endpoint_slug en @workflow_enabled, monte SinpapelRouter, llame los endpoints available-transitions / transition / history / preview-transition / metadatos / sla-status, exporte / importe flujos por HTTP, o configure permisos sobre transiciones. Cubre el dispatch polimórfico de firma y el mapeo de errores.
+Usar siempre que el usuario exponga flujos sinpapel por API REST con Django REST Framework, instale sinpapel-drf, use expose_endpoints=True / endpoint_slug en @workflow_enabled, monte SinpapelRouter, llame los endpoints available-transitions / transition / history / preview-transition / metadatos / sla-status / documentos / requisitos, exporte / importe flujos por HTTP, o configure permisos sobre transiciones. Cubre la carga de documentos (InstanciaDocumento), el dispatch polimórfico de firma y el mapeo de errores.
 
 Fuente: `skills/sinpapel-drf/SKILL.md`
 
@@ -86,13 +86,13 @@ Fuente: `skills/sinpapel-transitions/SKILL.md`
 
 ### sinpapel-vue-client
 
-Usar siempre que el usuario cree o use el cliente REST JS de sinpapel-vue (createSinpapelClient), llame uno de sus 7 métodos (availableTransitions, history, previewTransition, getMetadatos, patchMetadatos, slaStatus, transition), mapee llamadas a los endpoints de sinpapel-drf, cancele requests con AbortController/signal, o use buildTransitionRequest para codificar el payload de transición (JSON vs multipart FIEL).
+Usar siempre que el usuario cree o use el cliente REST JS de sinpapel-vue (createSinpapelClient), llame uno de sus 11 métodos (availableTransitions, history, previewTransition, getMetadatos, patchMetadatos, slaStatus, listDocumentos, uploadDocumento, deleteDocumento, requisitos, transition), mapee llamadas a los endpoints de sinpapel-drf, cancele requests con AbortController/signal, o use buildTransitionRequest / buildDocumentoUpload para codificar el payload (JSON vs multipart FIEL / multipart de documentos).
 
 Fuente: `skills/sinpapel-vue-client/SKILL.md`
 
 ### sinpapel-vue-components
 
-Usar siempre que el usuario use o parametrice los componentes Vue de sinpapel-vue (SeguimientoPanel, StateBadge, HistoryTimeline, TransitionDialog, PreviewTransitionPanel, MetadatosForm, SlaStatusPanel), sus props/emits, la composición de pestañas del panel, el remount con :key, la accesibilidad del diálogo, o la UI de firma polimórfica (FIEL client/server-side, manual, fake) en TransitionDialog.
+Usar siempre que el usuario use o parametrice los componentes Vue de sinpapel-vue (SeguimientoPanel, StateBadge, HistoryTimeline, TransitionDialog, PreviewTransitionPanel, MetadatosForm, SlaStatusPanel, RequisitosPanel, DocumentosPanel), sus props/emits, la composición de pestañas del panel, el remount con :key, la accesibilidad del diálogo, la UI de cumplimiento/carga documental, o la UI de firma polimórfica (FIEL client/server-side, manual, fake) en TransitionDialog.
 
 Fuente: `skills/sinpapel-vue-components/SKILL.md`
 
@@ -104,7 +104,7 @@ Fuente: `skills/sinpapel-vue-setup/SKILL.md`
 
 ### sinpapel-vue-store
 
-Usar siempre que el usuario use el store Pinia useSeguimientoStore de sinpapel-vue o sus composables useTransition/useSpLabels, gestione loading granular (estados/historial/metadatos/transicion), cancele requests con cancel(), construya el payload de transición/firma (buildPayload/buildSignaturePayload), valide el formulario de transición, o normalice el historial paginado del backend.
+Usar siempre que el usuario use el store Pinia useSeguimientoStore de sinpapel-vue o sus composables useTransition/useSpLabels, gestione loading granular (estados/historial/metadatos/transicion/documentos/requisitos), cancele requests con cancel(), cargue o suba documentos (cargarDocumentos/cargarRequisitos/subirDocumento/eliminarDocumento), construya el payload de transición/firma (buildPayload/buildSignaturePayload), valide el formulario de transición, o normalice el historial paginado del backend.
 
 Fuente: `skills/sinpapel-vue-store/SKILL.md`
 

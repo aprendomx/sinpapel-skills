@@ -1,8 +1,8 @@
 ---
 name: sinpapel-drf
-description: Usar siempre que el usuario exponga flujos sinpapel por API REST con Django REST Framework, instale sinpapel-drf, use expose_endpoints=True / endpoint_slug en @workflow_enabled, monte SinpapelRouter, llame los endpoints available-transitions / transition / history / preview-transition / metadatos / sla-status, exporte / importe flujos por HTTP, o configure permisos sobre transiciones. Cubre el dispatch polimórfico de firma y el mapeo de errores.
+description: Usar siempre que el usuario exponga flujos sinpapel por API REST con Django REST Framework, instale sinpapel-drf, use expose_endpoints=True / endpoint_slug en @workflow_enabled, monte SinpapelRouter, llame los endpoints available-transitions / transition / history / preview-transition / metadatos / sla-status / documentos / requisitos, exporte / importe flujos por HTTP, o configure permisos sobre transiciones. Cubre la carga de documentos (InstanciaDocumento), el dispatch polimórfico de firma y el mapeo de errores.
 tested_against:
-  - sinpapel-drf==0.2.1
+  - sinpapel-drf==0.3.0
   - sinpapel==0.6.0
 applies_to:
   - "**/urls.py"
@@ -15,10 +15,10 @@ applies_to:
 ## Instalación
 
 ```bash
-pip install "sinpapel-drf @ git+ssh://git@github.com/aprendomx/sinpapel-drf.git@v0.2.1"
+pip install "sinpapel-drf @ git+ssh://git@github.com/aprendomx/sinpapel-drf.git@v0.3.0"
 ```
 
-`sinpapel-drf` requiere `sinpapel>=0.5.1` y `djangorestframework>=3.14`.
+`sinpapel-drf` requiere `sinpapel>=0.6.0` y `djangorestframework>=3.14`.
 Si no quieres CRUD admin de condiciones/SLAs, no instales el extra
 `[admin]` — los endpoints quedan disponibles solo si DRF está instalado.
 
@@ -73,7 +73,7 @@ urlpatterns = [
 
 ## Endpoints por instancia (auto-generados)
 
-Para cada modelo con `expose_endpoints=True` se generan 6 acciones en
+Para cada modelo con `expose_endpoints=True` se generan estas acciones en
 `<slug>`:
 
 | Método + URL | Acción | Permiso |
@@ -83,6 +83,9 @@ Para cada modelo con `expose_endpoints=True` se generan 6 acciones en
 | `POST /<slug>/<pk>/transition/` | Ejecuta la transición. | `IsAuthenticated` (+ grupos vía engine) |
 | `GET /<slug>/<pk>/history/` | Historial paginado de simple-history. | `IsAuthenticated` |
 | `GET/PATCH /<slug>/<pk>/metadatos/` | Schema + valores; PATCH actualiza. | `IsAuthenticated` |
+| `GET/POST /<slug>/<pk>/documentos/` | Lista / sube `InstanciaDocumento`. (0.3.0) | `IsAuthenticated` |
+| `DELETE /<slug>/<pk>/documentos/<doc_id>/` | Borra una `InstanciaDocumento` del trámite. (0.3.0) | `IsAuthenticated` |
+| `GET /<slug>/<pk>/requisitos/` | Cumplimiento documental del estado actual. (0.3.0) | `IsAuthenticated` |
 | `POST /<slug>/<pk>/sla-status/` | Evalúa SLAs (puede mutar si `alertar`). | `IsAdminUser` |
 
 Detalle de payloads en `references/endpoints-reference.md`.
@@ -96,6 +99,54 @@ enforca requisitos documentales finos: `documentos_faltantes` puede traer
 entradas `{"tipo": "requisito_documento", ...}` y `POST /transition/` responde
 **403** (`PermissionError`) si un requisito no se satisface (ver
 `sinpapel-transitions`).
+
+## Carga y validación de documentos (desde 0.3.0)
+
+Tres endpoints typed sobre `InstanciaDocumento`, scoping todo por la GFK
+`target` al trámite (no se puede leer/borrar un documento de otra instancia).
+
+**Subir — `POST /<slug>/<pk>/documentos/`** (`multipart/form-data`). Acepta
+`archivo` (requerido) más `documento` (PK) **o** `tipo_documento` (PK):
+
+```bash
+curl -X POST -H "Authorization: Token <t>" \
+  -F "archivo=@comprobante.pdf" \
+  -F "tipo_documento=3" \
+  -F "porcentaje=100" \
+  -F 'metadatos={"folio":"A-12"}' \
+  https://host/sinpapel/api/solicitudes/42/documentos/
+```
+
+Regla de resolución por `tipo_documento`: debe existir **exactamente un**
+`Documento` de ese tipo. Si hay 0 o >1, el serializer responde **400**
+pidiendo `documento` explícito. `metadatos` viaja como string JSON (el
+`JSONField` de DRF lo parsea). El `autor`/`modificador` se setean con
+`request.user`. Respuesta `201` con `{id, documento, tipo_documento, archivo,
+porcentaje, creado}`.
+
+**Listar — `GET /<slug>/<pk>/documentos/`**: las `InstanciaDocumento` del
+trámite, `-creado` primero.
+
+**Borrar — `DELETE /<slug>/<pk>/documentos/<doc_id>/`**: `204`, o `404` si el
+documento no pertenece al trámite.
+
+**Requisitos — `GET /<slug>/<pk>/requisitos/`**: proyecta
+`WorkflowEngine.evaluar_requisitos_documentales(instance)` (misma fuente que
+el engine; sin lógica duplicada). Lista con dos niveles:
+
+```json
+[
+  {"nivel": "expediente", "satisfecho": false, "mensaje": "Se requiere..."},
+  {"nivel": "requisito_documento", "satisfecho": false,
+   "tipo_documento": "Comprobante", "porcentaje_requerido": 100,
+   "porcentaje_actual": 0, "auto_carga": false, "mensaje": "Falta..."}
+]
+```
+
+`porcentaje_actual = max(InstanciaDocumento.porcentaje)` del tipo ligado a la
+instancia (0 si no hay ninguno); `auto_carga=true ⇒ satisfecho=true` (lo
+genera el sistema). Úsalo para pintar un checklist antes de habilitar la
+transición — la **autoridad** sigue siendo el engine en `POST /transition/`.
 
 ## Endpoints admin (top-level)
 

@@ -2,7 +2,7 @@
 name: sinpapel-signing
 description: Usar siempre que el usuario implemente firma electrónica con sinpapel, configure SINPAPEL_SIGNATURE_BACKEND, use FielBackend (FIEL/SAT México) en modo client-side o server-side, ManualBackend o FakeBackend, escriba un backend custom que implemente el Protocol SignatureBackend, persista RegistroFirma, llame get_signature_backend(), pase firma_payload a transition(), o vea SignatureValidationError / SignatureBackendNotConfiguredError. Cubre los dos modos del FIEL y el contrato del Port/Adapter.
 tested_against:
-  - sinpapel==0.5.1
+  - sinpapel==0.6.0
 applies_to:
   - "**/signing/**/*.py"
   - "**/backends/*.py"

@@ -3,9 +3,10 @@ name: sinpapel-overview
 description: Usar siempre que el usuario mencione el framework sinpapel, sinpapel-drf, sinpapel-webhooks o sinpapel-designer; necesite decidir qué skill cargar; pregunte qué hace el framework, su arquitectura, qué versión usar, o cómo se relacionan sus paquetes; o cuando aparezcan términos como @workflow_enabled, VersionFlujo, ConfiguracionTransicion, SeguimientoWorkflow, FielBackend, RegistroFirma, CondicionTransicion, SLAConfiguracion o MetadatosCapturables sin un contexto más específico.
 tested_against:
   - sinpapel==0.6.0
-  - sinpapel-drf==0.2.1
+  - sinpapel-drf==0.3.0
   - sinpapel-webhooks==0.2.1
   - sinpapel-designer@S27.8
+  - sinpapel-vue@0.2.0
 applies_to:
   - "**/models.py"
   - "**/services/*.py"
@@ -42,10 +43,10 @@ signals, y export/import portable JSON v0.2 (`sinpapel_export_flujo` /
 | Paquete | Qué añade | Versión |
 |---|---|---|
 | `sinpapel` | Núcleo: workflow + audit + signing + predicates + SLA + metadata. | 0.6.0 |
-| `sinpapel-drf` | API REST DRF: 6 acciones por modelo + CRUD admin + portabilidad. | 0.2.1 |
+| `sinpapel-drf` | API REST DRF: 8 acciones por modelo (incluye `documentos`/`requisitos`) + CRUD admin + portabilidad. | 0.3.0 |
 | `sinpapel-webhooks` | Outbound (signals→outbox→worker, HMAC) + inbound (`@webhook_receiver`). | 0.2.1 |
 | `sinpapel-designer` | SPA Vue 3 + Quasar standalone para diseñar flujos. Round-trip JSON v0.2. | S27.8+ |
-| `sinpapel-vue` | Widgets Vue 3 que consumen `sinpapel-drf` para seguir flujos en el frontend. | 0.1.0 |
+| `sinpapel-vue` | Widgets Vue 3 que consumen `sinpapel-drf` para seguir flujos en el frontend (incluye carga documental). | 0.2.0 |
 
 ## Qué skill usar para qué tarea
 
@@ -119,10 +120,10 @@ signals, y export/import portable JSON v0.2 (`sinpapel_export_flujo` /
 
 ```
 sinpapel @ git+ssh://git@github.com/aprendomx/sinpapel.git@v0.6.0
-sinpapel-drf @ git+ssh://git@github.com/aprendomx/sinpapel-drf.git@v0.2.1
+sinpapel-drf @ git+ssh://git@github.com/aprendomx/sinpapel-drf.git@v0.3.0
 sinpapel-webhooks @ git+ssh://git@github.com/aprendomx/sinpapel-webhooks.git@v0.2.1
 sinpapel-designer @ rama main (S27.8+)
-sinpapel-vue @ npm @aprendomx/sinpapel-vue@0.1.0
+sinpapel-vue @ npm @aprendomx/sinpapel-vue@0.2.0
 ```
 
 ## Referencias canónicas

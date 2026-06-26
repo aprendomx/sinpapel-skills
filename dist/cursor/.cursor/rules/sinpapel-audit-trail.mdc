@@ -144,7 +144,7 @@ update_change_reason(solicitud, "Ajuste por validación SAT")
   `HistoricalRecords` del modelo decorado.
 
 Para `SeguimientoWorkflow`, escribe tu propio serializer/endpoint (no
-está expuesto por defecto en `sinpapel-drf` v0.2.1).
+está expuesto por defecto en `sinpapel-drf` v0.3.0).
 
 ## Anti-patrones
 

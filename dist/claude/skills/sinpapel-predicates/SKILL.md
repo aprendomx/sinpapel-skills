@@ -2,7 +2,7 @@
 name: sinpapel-predicates
 description: Usar siempre que el usuario defina reglas de negocio que bloqueen una transición (montos, fechas, validaciones cruzadas), use CondicionTransicion, PredicateEngine, los backends python_path / json_logic / django_orm, o vea el signal predicate_failed. Cubre cómo configurar SINPAPEL_PREDICATE_MODULES como whitelist de seguridad y el JSON Logic restringido del framework.
 tested_against:
-  - sinpapel==0.5.1
+  - sinpapel==0.6.0
 applies_to:
   - "**/predicates.py"
   - "**/migrations/*seed*predicates*.py"
