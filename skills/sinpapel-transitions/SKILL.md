@@ -1,8 +1,8 @@
 ---
 name: sinpapel-transitions
-description: Usar siempre que el usuario ejecute una transición de estado, llame transition() / available_transitions() / can_transition_to() / preview_transition(), maneje PermissionError o ValueError al transicionar, o use WorkflowEngine directamente. Cubre payload de firma (firma_payload), kwargs (comentarios, monto_aprobado, condiciones, ip_address) y la consulta del audit log SeguimientoWorkflow.
+description: Usar siempre que el usuario ejecute una transición de estado, llame transition() / available_transitions() / can_transition_to() / preview_transition(), maneje PermissionError o ValueError al transicionar, o use WorkflowEngine directamente. Cubre payload de firma (firma_payload), kwargs (comentarios, condiciones, ip_address) y la consulta del audit log SeguimientoWorkflow.
 tested_against:
-  - sinpapel==0.6.0
+  - sinpapel==0.7.0
 applies_to:
   - "**/views.py"
   - "**/services/**/*.py"
@@ -77,7 +77,6 @@ Los pasa el método inyectado al `WorkflowEngine`:
 | kwarg | Tipo | Para qué |
 |---|---|---|
 | `comentarios` | `str` | Texto libre, se guarda en `SeguimientoWorkflow.comentarios`. |
-| `monto_aprobado` | `Decimal` | Si la transición aprueba un monto. |
 | `condiciones` | `str` | Condiciones libres de la transición. |
 | `ip_address` | `str` | IP del cliente. |
 | `firma_payload` | `dict` | Payload de firma. Ver "Firma electrónica" abajo. |
@@ -86,6 +85,11 @@ Estos kwargs son los que el motor **conoce explícitamente**; ignora otros
 silenciosamente. Si necesitas pasar metadata adicional, considera
 `MetadatosCapturables` (`sinpapel-metadata`) o un side effect
 (`sinpapel-side-effects`).
+
+> **Breaking (sinpapel 0.7.0):** se eliminó el kwarg `monto_aprobado`
+> (`transition()` / `WorkflowEngine.cambiar_estado()` ya no lo aceptan). Era un
+> concepto de dominio filtrado en el framework genérico. Para datos de dominio
+> usa `MetadatosCapturables`, o `condiciones` / `comentarios`.
 
 ## El `dict` que devuelve `transition()`
 
@@ -203,7 +207,7 @@ Cada `SeguimientoWorkflow` lleva:
 
 - `estado_anterior` / `estado_nuevo`
 - `usuario_accion`, `fecha_accion`
-- `comentarios`, `monto_aprobado`, `condiciones`, `ip_address`
+- `comentarios`, `condiciones`, `ip_address`
 - `documentos_adjuntos` (JSONField)
 - `firma_registro` (OneToOne nullable a `RegistroFirma`)
 

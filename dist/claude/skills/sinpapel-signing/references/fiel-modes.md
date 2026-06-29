@@ -63,7 +63,7 @@ ADR-012 lista (extracto):
 - [ ] `SINPAPEL_ALLOW_SERVER_SIGNING` controlado por env var, no
       hardcoded.
 - [ ] `key_file` y `password` marcados `write_only=True` en serializer
-      (no leakean en responses). Verificado en `sinpapel-drf` v0.3.0.
+      (no leakean en responses). Verificado en `sinpapel-drf` v0.4.0.
 - [ ] Liberación explícita de memoria: `_with_secure_key_buffer` borra
       buffers + `gc.collect()` en `finally`.
 - [ ] Logging conservador: no logear key, password, ni `.key` decodificada.
@@ -72,7 +72,7 @@ ADR-012 lista (extracto):
       registrado para forensics.
 - [ ] HTTPS-only enforcement en producción (responsabilidad del consumer).
 - [ ] Rate limiting opt-in (`UserRateThrottle` u otro) — `sinpapel-drf`
-      v0.3.0 no lo trae built-in.
+      v0.4.0 no lo trae built-in.
 - [ ] Revisión legal de uso de FIEL del SAT para firma electrónica
       avanzada (Código Civil Federal Art. 1803, NOM-151, ley FECEM si
       aplica).

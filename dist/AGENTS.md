@@ -50,7 +50,7 @@ Fuente: `skills/sinpapel-predicates/SKILL.md`
 
 ### sinpapel-project-setup
 
-Usar siempre que el usuario instale sinpapel en un proyecto Django nuevo o existente, configure INSTALLED_APPS, MIDDLEWARE o cualquier setting con prefijo SINPAPEL_*; mencione errores como "Estado no resuelto" / "history_user is None" / "AppRegistryNotReady"; o pregunte por dependencias (django-simple-history, cryptography), versiones soportadas o el orden correcto de las apps. Cubre el primer migrate, la instalación desde git@v0.6.0 y la verificación post-setup.
+Usar siempre que el usuario instale sinpapel en un proyecto Django nuevo o existente, configure INSTALLED_APPS, MIDDLEWARE o cualquier setting con prefijo SINPAPEL_*; mencione errores como "Estado no resuelto" / "history_user is None" / "AppRegistryNotReady"; o pregunte por dependencias (django-simple-history, cryptography), versiones soportadas o el orden correcto de las apps. Cubre el primer migrate, la instalación desde git@v0.7.0 y la verificación post-setup.
 
 Fuente: `skills/sinpapel-project-setup/SKILL.md`
 
@@ -80,7 +80,7 @@ Fuente: `skills/sinpapel-testing/SKILL.md`
 
 ### sinpapel-transitions
 
-Usar siempre que el usuario ejecute una transición de estado, llame transition() / available_transitions() / can_transition_to() / preview_transition(), maneje PermissionError o ValueError al transicionar, o use WorkflowEngine directamente. Cubre payload de firma (firma_payload), kwargs (comentarios, monto_aprobado, condiciones, ip_address) y la consulta del audit log SeguimientoWorkflow.
+Usar siempre que el usuario ejecute una transición de estado, llame transition() / available_transitions() / can_transition_to() / preview_transition(), maneje PermissionError o ValueError al transicionar, o use WorkflowEngine directamente. Cubre payload de firma (firma_payload), kwargs (comentarios, condiciones, ip_address) y la consulta del audit log SeguimientoWorkflow.
 
 Fuente: `skills/sinpapel-transitions/SKILL.md`
 

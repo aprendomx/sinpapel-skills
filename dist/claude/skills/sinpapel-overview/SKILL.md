@@ -2,11 +2,11 @@
 name: sinpapel-overview
 description: Usar siempre que el usuario mencione el framework sinpapel, sinpapel-drf, sinpapel-webhooks o sinpapel-designer; necesite decidir qué skill cargar; pregunte qué hace el framework, su arquitectura, qué versión usar, o cómo se relacionan sus paquetes; o cuando aparezcan términos como @workflow_enabled, VersionFlujo, ConfiguracionTransicion, SeguimientoWorkflow, FielBackend, RegistroFirma, CondicionTransicion, SLAConfiguracion o MetadatosCapturables sin un contexto más específico.
 tested_against:
-  - sinpapel==0.6.0
-  - sinpapel-drf==0.3.0
+  - sinpapel==0.7.0
+  - sinpapel-drf==0.4.0
   - sinpapel-webhooks==0.2.1
   - sinpapel-designer@S27.8
-  - sinpapel-vue@0.2.0
+  - sinpapel-vue@0.3.0
 applies_to:
   - "**/models.py"
   - "**/services/*.py"
@@ -42,11 +42,11 @@ signals, y export/import portable JSON v0.2 (`sinpapel_export_flujo` /
 
 | Paquete | Qué añade | Versión |
 |---|---|---|
-| `sinpapel` | Núcleo: workflow + audit + signing + predicates + SLA + metadata. | 0.6.0 |
-| `sinpapel-drf` | API REST DRF: 8 acciones por modelo (incluye `documentos`/`requisitos`) + CRUD admin + portabilidad. | 0.3.0 |
+| `sinpapel` | Núcleo: workflow + audit + signing + predicates + SLA + metadata. | 0.7.0 |
+| `sinpapel-drf` | API REST DRF: 8 acciones por modelo (incluye `documentos`/`requisitos`) + CRUD admin + portabilidad. | 0.4.0 |
 | `sinpapel-webhooks` | Outbound (signals→outbox→worker, HMAC) + inbound (`@webhook_receiver`). | 0.2.1 |
 | `sinpapel-designer` | SPA Vue 3 + Quasar standalone para diseñar flujos. Round-trip JSON v0.2. | S27.8+ |
-| `sinpapel-vue` | Widgets Vue 3 que consumen `sinpapel-drf` para seguir flujos en el frontend (incluye carga documental). | 0.2.0 |
+| `sinpapel-vue` | Widgets Vue 3 que consumen `sinpapel-drf` para seguir flujos en el frontend (incluye carga documental). | 0.3.0 |
 
 ## Qué skill usar para qué tarea
 
@@ -105,13 +105,19 @@ signals, y export/import portable JSON v0.2 (`sinpapel_export_flujo` /
 - **i18n hardcoded en español**: verbose_names, mensajes de error y de
   validación están en español. Override en formularios/serializers si
   necesitas otro idioma.
-- **API 0.x (beta)**: fija `@v0.6.0` (o el tag/commit exacto) en tus
-  dependencias. No uses `>=0.6,<0.7` sin pinear el commit.
+- **API 0.x (beta)**: fija `@v0.7.0` (o el tag/commit exacto) en tus
+  dependencias. No uses `>=0.7,<0.8` sin pinear el commit.
 - **0.6.0 enforca requisitos documentales** (`RequisitoEstadoDocumento`) en
   las transiciones — antes solo se sembraban/exportaban. Cambio
   potencialmente breaking al actualizar desde 0.5.x: transiciones con
   requisitos configurados pueden lanzar `PermissionError` hasta satisfacerlos.
   Detalle en `sinpapel-transitions` y `sinpapel-project-setup`.
+- **0.7.0 elimina `monto_aprobado`** (campo residual de dominio) de
+  `SeguimientoWorkflow`, `transition()` / `cambiar_estado()` y del paso a
+  side-effects (migración `0006`). Breaking: usa metadatos o
+  `condiciones`/`comentarios`. `sinpapel-drf 0.4.0` y `sinpapel-vue 0.3.0`
+  alinean este cambio; `sinpapel-drf 0.4.0` además enriquece `/requisitos/`
+  con `tipo_documento_id` + `documentos_disponibles` para selects dependientes.
 - **Algunas tablas usan prefijo legado**: la tabla SQL puede no coincidir
   con el nombre del modelo (`db_table` override). No asumas el nombre de
   la tabla; consúltalo en `migrations/0001_initial.py`.
@@ -119,11 +125,11 @@ signals, y export/import portable JSON v0.2 (`sinpapel_export_flujo` /
 ## Versiones contra las que se verificó este conjunto de skills
 
 ```
-sinpapel @ git+ssh://git@github.com/aprendomx/sinpapel.git@v0.6.0
-sinpapel-drf @ git+ssh://git@github.com/aprendomx/sinpapel-drf.git@v0.3.0
+sinpapel @ git+ssh://git@github.com/aprendomx/sinpapel.git@v0.7.0
+sinpapel-drf @ git+ssh://git@github.com/aprendomx/sinpapel-drf.git@v0.4.0
 sinpapel-webhooks @ git+ssh://git@github.com/aprendomx/sinpapel-webhooks.git@v0.2.1
 sinpapel-designer @ rama main (S27.8+)
-sinpapel-vue @ npm @aprendomx/sinpapel-vue@0.2.0
+sinpapel-vue @ npm @aprendomx/sinpapel-vue@0.3.0
 ```
 
 ## Referencias canónicas

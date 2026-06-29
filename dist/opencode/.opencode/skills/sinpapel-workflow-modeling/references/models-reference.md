@@ -1,7 +1,7 @@
 # Referencia de modelos del workflow
 
 Resumen de campos clave de cada modelo del subsistema workflow.
-Verificado contra `sinpapel/models/workflow.py` (v0.6.0).
+Verificado contra `sinpapel/models/workflow.py` (v0.7.0).
 
 ## `Etapa`
 
@@ -85,7 +85,6 @@ Audit log inmutable de transiciones.
 | `fecha_accion` | `DateTimeField(auto_now_add)` | |
 | `comentarios` | `TextField` | |
 | `documentos_adjuntos` | `JSONField` | Lista de docs asociados. |
-| `monto_aprobado` | `DecimalField(12,2)` | |
 | `condiciones` | `TextField` | |
 | `ip_address` | `GenericIPAddressField` | |
 | `firma_registro` | `OneToOneField(RegistroFirma)` | Nullable. |

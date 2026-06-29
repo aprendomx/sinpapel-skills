@@ -2,8 +2,8 @@
 name: sinpapel-vue-store
 description: Usar siempre que el usuario use el store Pinia useSeguimientoStore de sinpapel-vue o sus composables useTransition/useSpLabels, gestione loading granular (estados/historial/metadatos/transicion/documentos/requisitos), cancele requests con cancel(), cargue o suba documentos (cargarDocumentos/cargarRequisitos/subirDocumento/eliminarDocumento), construya el payload de transición/firma (buildPayload/buildSignaturePayload), valide el formulario de transición, o normalice el historial paginado del backend.
 tested_against:
-  - sinpapel-vue@0.2.0
-  - sinpapel-drf==0.3.0
+  - sinpapel-vue@0.3.0
+  - sinpapel-drf==0.4.0
 applies_to:
   - "**/sinpapel-vue/**"
   - "**/stores/useSeguimientoStore.js"
@@ -68,14 +68,14 @@ tx.comentarios.value = 'Aprobado por comité'
 await tx.submit()  // valida, arma payload, envía, resetea en éxito
 ```
 
-Expone: `targetState`, `comentarios`, `montoAprobado`, `condiciones`,
+Expone: `targetState`, `comentarios`, `condiciones`,
 `signatureBackend`, `signatureMode`, `signatureFields`, `signaturePayload`
 (computed), `loading`, `error`, `errors`, `buildPayload`, `submit`,
-`reset`, `validate`.
+`reset`, `validate`. *(sinpapel-vue 0.3.0 eliminó `montoAprobado`, alineado con
+sinpapel 0.7.0.)*
 
 ### Validación (`validate()`)
 - Estado destino obligatorio.
-- `montoAprobado` > 0 si se proporciona.
 - FIEL server-side: `.cer`, `.key` y contraseña obligatorios.
 
 ### buildSignaturePayload(backend, mode, fields)
@@ -86,8 +86,8 @@ Función pura (espeja `SignatureRequestSerializer`):
 - `fake` → `{ backend: 'fake' }`.
 - `null`/desconocido → `null`.
 
-`buildPayload()` arma `{ target_state, comentarios?, monto_aprobado?,
-condiciones?, signature? }` en snake_case.
+`buildPayload()` arma `{ target_state, comentarios?, condiciones?, signature? }`
+en snake_case.
 
 ## useSpLabels()
 

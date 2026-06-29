@@ -74,6 +74,11 @@ Desde `@aprendomx/sinpapel-vue` (ver `src/index.js`): `createSinpapelClient`,
 y **Documentos**. Si el backend corre `sinpapel-drf < 0.3.0`, esas pestañas
 fallan al cargar — mantén las versiones alineadas.
 
+**0.3.0** (breaking): `DocumentosPanel` carga documentos con selects
+dependientes (tipo → documento) desde `requisitos.documentos_disponibles` y
+elimina el campo *monto aprobado* de la transición (alineado con sinpapel
+0.7.0). Requiere `sinpapel-drf >= 0.4.0`.
+
 Detalle por capa: `sinpapel-vue-client`, `sinpapel-vue-components`,
 `sinpapel-vue-store`.
 

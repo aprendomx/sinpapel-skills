@@ -8,10 +8,10 @@ alwaysApply: false
 ## Instalación
 
 ```bash
-pip install "sinpapel-drf @ git+ssh://git@github.com/aprendomx/sinpapel-drf.git@v0.3.0"
+pip install "sinpapel-drf @ git+ssh://git@github.com/aprendomx/sinpapel-drf.git@v0.4.0"
 ```
 
-`sinpapel-drf` requiere `sinpapel>=0.6.0` y `djangorestframework>=3.14`.
+`sinpapel-drf` requiere `sinpapel>=0.7.0` y `djangorestframework>=3.14`.
 Si no quieres CRUD admin de condiciones/SLAs, no instales el extra
 `[admin]` — los endpoints quedan disponibles solo si DRF está instalado.
 
@@ -131,8 +131,11 @@ el engine; sin lógica duplicada). Lista con dos niveles:
 [
   {"nivel": "expediente", "satisfecho": false, "mensaje": "Se requiere..."},
   {"nivel": "requisito_documento", "satisfecho": false,
-   "tipo_documento": "Comprobante", "porcentaje_requerido": 100,
-   "porcentaje_actual": 0, "auto_carga": false, "mensaje": "Falta..."}
+   "tipo_documento": "Identificación", "tipo_documento_id": 7,
+   "porcentaje_requerido": 100, "porcentaje_actual": 0, "auto_carga": false,
+   "mensaje": "Falta...",
+   "documentos_disponibles": [{"id": 3, "nombre": "Pasaporte"},
+                              {"id": 4, "nombre": "INE"}]}
 ]
 ```
 
@@ -140,6 +143,15 @@ el engine; sin lógica duplicada). Lista con dos niveles:
 instancia (0 si no hay ninguno); `auto_carga=true ⇒ satisfecho=true` (lo
 genera el sistema). Úsalo para pintar un checklist antes de habilitar la
 transición — la **autoridad** sigue siendo el engine en `POST /transition/`.
+
+**Enriquecimiento de selects dependientes (v0.4.0, aditivo):** cada item de
+nivel `requisito_documento` incluye ahora `tipo_documento_id` (PK del tipo) y
+`documentos_disponibles` (`[{id, nombre}]` — los `Documento` de ese tipo). El
+engine ya exponía `tipo_documento_id`; el viewset adjunta
+`documentos_disponibles` con el helper `_attach_documentos_disponibles` (una
+sola query). Permite al cliente poblar un `<select>` de tipo y un `<select>`
+dependiente de documento (ej. tipo "Identificación" → "Pasaporte" / "INE") sin
+endpoints ni round-trips extra. No rompe consumidores existentes.
 
 ## Endpoints admin (top-level)
 
@@ -156,6 +168,11 @@ transición — la **autoridad** sigue siendo el engine en `POST /transition/`.
 `POST /<slug>/<pk>/transition/` acepta `signature` con un de cuatro
 formas. El serializer `SignatureRequestSerializer` despacha al
 sub-serializer apropiado.
+
+> **Breaking (sinpapel-drf 0.4.0):** `TransitionRequestSerializer` eliminó el
+> campo `monto_aprobado` (alineado con su remoción en sinpapel 0.7.0). El body
+> de `transition` ya no lo acepta; usa metadatos o `condiciones` / `comentarios`
+> para datos de dominio.
 
 **FIEL — client-side (default y recomendado):**
 

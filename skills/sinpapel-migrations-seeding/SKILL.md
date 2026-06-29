@@ -2,7 +2,7 @@
 name: sinpapel-migrations-seeding
 description: Usar siempre que el usuario siembre datos iniciales de Estado, Etapa, VersionFlujo o ConfiguracionTransicion vía data migrations; importe o exporte flujos con sinpapel_export_flujo / sinpapel_import_flujo (JSON schema v0.2); diseñe migraciones reversibles para catálogos del framework, o pregunte por requisitos documentales (RequisitoEstadoDocumento).
 tested_against:
-  - sinpapel==0.6.0
+  - sinpapel==0.7.0
 applies_to:
   - "**/migrations/*.py"
 ---

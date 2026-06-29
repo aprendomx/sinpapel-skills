@@ -39,10 +39,11 @@ Props: `entries` (`[]`), `page` (`1`), `pageSize` (`0` = sin paginación),
 ### TransitionDialog
 Props: `modelValue` (`false`), `client` (req), `currentState` (`''`),
 `estados` (`[]`). Emits: `update:modelValue`, `transitioned(result)`.
-Selector de estado destino, comentarios, monto aprobado, condiciones y
-**firma polimórfica**. Validación: estado destino obligatorio; monto > 0 si
-se da; FIEL server-side exige `.cer`/`.key`/contraseña. La lógica del form
-vive en `useTransition` (ver `sinpapel-vue-store`).
+Selector de estado destino, comentarios, condiciones y **firma polimórfica**.
+Validación: estado destino obligatorio; FIEL server-side exige
+`.cer`/`.key`/contraseña. La lógica del form vive en `useTransition` (ver
+`sinpapel-vue-store`). *(sinpapel-vue 0.3.0 eliminó el campo monto aprobado,
+alineado con sinpapel 0.7.0.)*
 
 ### PreviewTransitionPanel
 Props: `client` (req), `targetState` (`''`). Debounce 300ms sobre
@@ -61,13 +62,26 @@ del estado actual (`client.requisitos()`). Pinta ✓/○ por requisito con
 `porcentaje_actual / porcentaje_requerido` y mensaje. Carga al montar;
 `defineExpose({ load, items })` para refrescar desde fuera.
 
-### DocumentosPanel (0.2.0)
+### DocumentosPanel (0.2.0; selects dependientes en 0.3.0)
 Props: `client` (req). Emits: `changed`. Lista las `InstanciaDocumento` del
-trámite + formulario de carga (`archivo` requerido, `documento` **o**
-`tipo_documento`, `porcentaje`) y borrado. Sube vía `client.uploadDocumento`
-y borra vía `client.deleteDocumento`. Emite `changed` tras subir/borrar para
-que el contenedor refresque requisitos. Usa el `client` directo (no toca el
-store). Requiere `sinpapel-drf >= 0.3.0`.
+trámite + formulario de carga y borrado. Sube vía `client.uploadDocumento` y
+borra vía `client.deleteDocumento`. Emite `changed` tras subir/borrar para que
+el contenedor refresque requisitos. Usa el `client` directo (no toca el store).
+
+**Carga con selects dependientes (sinpapel-vue 0.3.0, requiere
+`sinpapel-drf >= 0.4.0`):** el formulario ya no pide `documento`/`tipo_documento`
+como inputs numéricos ni `porcentaje`. En su lugar:
+- Llama `client.requisitos()` al montar (`loadRequisitos`) y filtra los items
+  `nivel === 'requisito_documento'` con `tipo_documento_id`.
+- `<select>` de **tipo** (los tipos exigidos por el estado) y `<select>`
+  **dependiente** de documento poblado desde `documentos_disponibles`
+  (`[{id, nombre}]`, ej. "Identificación" → "Pasaporte"/"INE"). Si el tipo trae
+  una sola opción, se autoselecciona.
+- Sube solo `{ archivo, documento: documentoId }`; el `porcentaje` lo define la
+  config del requisito en el backend.
+- Si el estado no exige documentos (sin tipos), muestra un aviso en vez del
+  formulario. `defineExpose` añade `tipos`, `selectedTipoId`, `documentoId`,
+  `loadRequisitos`.
 
 ## Firma polimórfica (en TransitionDialog)
 

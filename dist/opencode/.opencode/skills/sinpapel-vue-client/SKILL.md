@@ -2,8 +2,8 @@
 name: sinpapel-vue-client
 description: Usar siempre que el usuario cree o use el cliente REST JS de sinpapel-vue (createSinpapelClient), llame uno de sus 11 métodos (availableTransitions, history, previewTransition, getMetadatos, patchMetadatos, slaStatus, listDocumentos, uploadDocumento, deleteDocumento, requisitos, transition), mapee llamadas a los endpoints de sinpapel-drf, cancele requests con AbortController/signal, o use buildTransitionRequest / buildDocumentoUpload para codificar el payload (JSON vs multipart FIEL / multipart de documentos).
 tested_against:
-  - sinpapel-vue@0.2.0
-  - sinpapel-drf==0.3.0
+  - sinpapel-vue@0.3.0
+  - sinpapel-drf==0.4.0
 applies_to:
   - "**/sinpapel-vue/**"
   - "**/client/sinpapelClient.js"
@@ -48,7 +48,9 @@ base se calcula en cada llamada: `{basePath}/{resource}/{pk}` (lee
 Cada método retorna `data` de axios. Todos propagan `signal` si se pasó al
 crear el cliente. Los cuatro métodos de documentos (`listDocumentos`,
 `uploadDocumento`, `deleteDocumento`, `requisitos`) requieren `sinpapel-drf
->= 0.3.0`.
+>= 0.3.0`. Con `sinpapel-drf >= 0.4.0`, `requisitos()` devuelve además
+`tipo_documento_id` y `documentos_disponibles` (`[{id, nombre}]`) por requisito
+documental, para selects dependientes (lo consume `DocumentosPanel`).
 
 ## Carga de documentos — `buildDocumentoUpload`
 
@@ -72,8 +74,9 @@ DRF lo parsea desde el string multipart). Devuelve `{ body, config }` con
 
 ## Payload de transición — `buildTransitionRequest`
 
-El body usa **snake_case**: `target_state`, `comentarios`, `monto_aprobado`,
-`condiciones`, y opcional `signature`.
+El body usa **snake_case**: `target_state`, `comentarios`, `condiciones`, y
+opcional `signature`. *(sinpapel-vue 0.3.0 eliminó `monto_aprobado`, alineado
+con sinpapel 0.7.0.)*
 
 - **FIEL server-side** (`signature.backend==='fiel'` y
   `signature.mode==='server-side'`) → `multipart/form-data` con claves DRF
@@ -109,8 +112,7 @@ normalización vive en el store/composable.
 
 ## Anti-patrones
 
-- ❌ Enviar camelCase al backend (`targetState`, `montoAprobado`). Usa
-  snake_case.
+- ❌ Enviar camelCase al backend (`targetState`). Usa snake_case.
 - ❌ Armar el `FormData` multipart a mano: pasa `signature` y deja que
   `buildTransitionRequest` decida JSON vs multipart.
 - ❌ Asumir que `history()` siempre pagina: puede venir array plano o

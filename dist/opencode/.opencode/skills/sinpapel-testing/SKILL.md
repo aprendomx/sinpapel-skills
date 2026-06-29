@@ -2,8 +2,8 @@
 name: sinpapel-testing
 description: Usar siempre que el usuario escriba tests de un proyecto que use sinpapel, configure pytest / pytest-django, use FakeBackend en lugar de FielBackend real, genere un keypair RSA en fixtures, limpie el cache del framework entre tests, use WorkflowRegistry.unregister, mockee transiciones o verifique history_user en tests sin request. Cubre los settings de test y los patrones de aislamiento.
 tested_against:
-  - sinpapel==0.6.0
-  - sinpapel-drf==0.3.0
+  - sinpapel==0.7.0
+  - sinpapel-drf==0.4.0
   - sinpapel-webhooks==0.2.1
 applies_to:
   - "**/tests/**/*.py"

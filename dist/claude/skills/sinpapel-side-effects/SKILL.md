@@ -2,7 +2,7 @@
 name: sinpapel-side-effects
 description: Usar siempre que el usuario quiera ejecutar lógica adicional tras una transición de sinpapel (notificaciones, generación de oficios, integración con sistemas externos, llamadas a otros servicios), use el decorador register_side_effect, registre handlers en AppConfig.ready(), o pregunte qué pasa si un handler falla, cuándo se ejecuta y cómo afecta a la atomicidad de la transición.
 tested_against:
-  - sinpapel==0.6.0
+  - sinpapel==0.7.0
 applies_to:
   - "**/apps.py"
   - "**/side_effects.py"
@@ -31,8 +31,10 @@ from sinpapel.services.side_effects import register_side_effect
 @register_side_effect("APROBADA")
 def on_aprobada(instance, user, **kwargs):
     """Handler que se invoca al entrar al estado APROBADA."""
-    monto = kwargs.get("monto_aprobado")
-    oficio = generar_oficio(instance, monto)
+    # Para datos de dominio usa metadatos de la instancia (sinpapel-metadata)
+    # o los kwargs de la transición (comentarios / condiciones).
+    comentarios = kwargs.get("comentarios", "")
+    oficio = generar_oficio(instance, comentarios)
     enviar_email_notificacion(instance, oficio)
     return {"oficio_id": oficio.id}   # se incluye en el dict de transition()
 ```
@@ -43,8 +45,8 @@ def on_aprobada(instance, user, **kwargs):
   `Estado.nombre` (case-sensitive).
 - Solo se permite **un** handler por estado. Registrar dos veces sobrescribe.
 - La firma es `(instance, user, **kwargs)`. `kwargs` incluye lo que se
-  pasó a `transition()` (`comentarios`, `monto_aprobado`, `condiciones`,
-  `ip_address`, etc.).
+  pasó a `transition()` (`comentarios`, `condiciones`, `ip_address`, etc.).
+  *(sinpapel 0.7.0 eliminó `monto_aprobado`; usa metadatos para datos de dominio.)*
 - Si retornas un `dict`, sus keys se fusionan en el `dict` que devuelve
   `transition()`. Si no retornas nada, queda `{}`.
 

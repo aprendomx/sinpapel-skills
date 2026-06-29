@@ -2,7 +2,7 @@
 name: sinpapel-metadata
 description: Usar siempre que el usuario capture metadatos estructurados por instancia, defina SCHEMA_METADATOS con CampoMetadato, herede de MetadatosCapturables, genere formularios o serializers DRF con MetaFormFactory, acceda a instance.meta, o pregunte cómo validar y serializar datos arbitrarios sin crear columnas físicas en el modelo.
 tested_against:
-  - sinpapel==0.6.0
+  - sinpapel==0.7.0
 applies_to:
   - "**/models.py"
   - "**/models/*.py"

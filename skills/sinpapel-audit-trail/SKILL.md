@@ -2,7 +2,7 @@
 name: sinpapel-audit-trail
 description: Usar siempre que el usuario configure auditoría, use Trazable, HistoricalRecords o django-simple-history, consulte el historial de un modelo o de SeguimientoWorkflow, mencione HistoryRequestMiddleware o history_user nulo en jobs/background, o pregunte cómo persistir quién y cuándo cambió qué en sinpapel.
 tested_against:
-  - sinpapel==0.6.0
+  - sinpapel==0.7.0
 applies_to:
   - "**/models.py"
   - "**/models/*.py"
@@ -48,7 +48,8 @@ Cada `transition()` exitosa crea una fila. Campos relevantes:
 - `target_content_type` + `target_object_id` + `target` (GFK).
 - `estado_anterior` (nullable la primera vez), `estado_nuevo`.
 - `usuario_accion`, `fecha_accion`.
-- `comentarios`, `monto_aprobado`, `condiciones`, `ip_address`.
+- `comentarios`, `condiciones`, `ip_address`.
+  *(sinpapel 0.7.0 eliminó el campo `monto_aprobado`, migración `0006`.)*
 - `documentos_adjuntos` (JSONField).
 - `firma_registro` (OneToOne nullable a `RegistroFirma`).
 
@@ -150,7 +151,7 @@ update_change_reason(solicitud, "Ajuste por validación SAT")
   `HistoricalRecords` del modelo decorado.
 
 Para `SeguimientoWorkflow`, escribe tu propio serializer/endpoint (no
-está expuesto por defecto en `sinpapel-drf` v0.3.0).
+está expuesto por defecto en `sinpapel-drf` v0.4.0).
 
 ## Anti-patrones
 

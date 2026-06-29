@@ -2,7 +2,7 @@
 
 Detalle exacto de payloads y responses. Para entender el flujo completo,
 empieza por la skill principal `sinpapel-drf`. Verificado contra
-v0.3.0.
+v0.4.0.
 
 ## `GET /<slug>/<pk>/available-transitions/`
 
@@ -66,7 +66,6 @@ endpoint además dispara el signal `transition_preview_requested`.
 |---|---|---|
 | `target_state` | string | **Obligatorio.** Nombre del estado destino. |
 | `comentarios` | string | Default `""`. |
-| `monto_aprobado` | string (decimal) | Opcional. |
 | `condiciones` | string \| null | Opcional. |
 | `signature` | object \| null | Ver dispatch polimórfico abajo. |
 
@@ -259,14 +258,21 @@ Cumplimiento documental del estado **actual** (proyecta
    "tipo_documento": null, "porcentaje_requerido": null,
    "porcentaje_actual": null, "auto_carga": false},
   {"nivel": "requisito_documento", "satisfecho": false,
-   "tipo_documento": "RFC", "porcentaje_requerido": 100,
-   "porcentaje_actual": 0, "auto_carga": false,
-   "mensaje": "Falta el documento 'RFC' (requerido 100%, actual 0%)."}
+   "tipo_documento": "RFC", "tipo_documento_id": 7,
+   "porcentaje_requerido": 100, "porcentaje_actual": 0, "auto_carga": false,
+   "mensaje": "Falta el documento 'RFC' (requerido 100%, actual 0%).",
+   "documentos_disponibles": [{"id": 9, "nombre": "RFC con homoclave"}]}
 ]
 ```
 
 `porcentaje_actual = max(InstanciaDocumento.porcentaje)` del tipo (0 si no
 hay); `auto_carga=true ⇒ satisfecho=true`.
+
+**v0.4.0 (aditivo):** cada `requisito_documento` incluye `tipo_documento_id`
+(PK del tipo) y `documentos_disponibles` (`[{id, nombre}]` — los `Documento`
+de ese tipo) para poblar un `<select>` dependiente en el cliente. El viewset lo
+adjunta con `_attach_documentos_disponibles` (una sola query); items de nivel
+`expediente` no se tocan.
 
 ## `POST /<slug>/<pk>/sla-status/`
 

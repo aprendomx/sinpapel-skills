@@ -61,14 +61,14 @@ tx.comentarios.value = 'Aprobado por comité'
 await tx.submit()  // valida, arma payload, envía, resetea en éxito
 ```
 
-Expone: `targetState`, `comentarios`, `montoAprobado`, `condiciones`,
+Expone: `targetState`, `comentarios`, `condiciones`,
 `signatureBackend`, `signatureMode`, `signatureFields`, `signaturePayload`
 (computed), `loading`, `error`, `errors`, `buildPayload`, `submit`,
-`reset`, `validate`.
+`reset`, `validate`. *(sinpapel-vue 0.3.0 eliminó `montoAprobado`, alineado con
+sinpapel 0.7.0.)*
 
 ### Validación (`validate()`)
 - Estado destino obligatorio.
-- `montoAprobado` > 0 si se proporciona.
 - FIEL server-side: `.cer`, `.key` y contraseña obligatorios.
 
 ### buildSignaturePayload(backend, mode, fields)
@@ -79,8 +79,8 @@ Función pura (espeja `SignatureRequestSerializer`):
 - `fake` → `{ backend: 'fake' }`.
 - `null`/desconocido → `null`.
 
-`buildPayload()` arma `{ target_state, comentarios?, monto_aprobado?,
-condiciones?, signature? }` en snake_case.
+`buildPayload()` arma `{ target_state, comentarios?, condiciones?, signature? }`
+en snake_case.
 
 ## useSpLabels()
 

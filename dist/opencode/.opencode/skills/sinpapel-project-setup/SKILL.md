@@ -1,8 +1,8 @@
 ---
 name: sinpapel-project-setup
-description: Usar siempre que el usuario instale sinpapel en un proyecto Django nuevo o existente, configure INSTALLED_APPS, MIDDLEWARE o cualquier setting con prefijo SINPAPEL_*; mencione errores como "Estado no resuelto" / "history_user is None" / "AppRegistryNotReady"; o pregunte por dependencias (django-simple-history, cryptography), versiones soportadas o el orden correcto de las apps. Cubre el primer migrate, la instalación desde git@v0.6.0 y la verificación post-setup.
+description: Usar siempre que el usuario instale sinpapel en un proyecto Django nuevo o existente, configure INSTALLED_APPS, MIDDLEWARE o cualquier setting con prefijo SINPAPEL_*; mencione errores como "Estado no resuelto" / "history_user is None" / "AppRegistryNotReady"; o pregunte por dependencias (django-simple-history, cryptography), versiones soportadas o el orden correcto de las apps. Cubre el primer migrate, la instalación desde git@v0.7.0 y la verificación post-setup.
 tested_against:
-  - sinpapel==0.6.0
+  - sinpapel==0.7.0
 applies_to:
   - "**/settings*.py"
   - "**/requirements*.txt"
@@ -24,7 +24,7 @@ applies_to:
 versión exacta:
 
 ```bash
-pip install "sinpapel @ git+ssh://git@github.com/aprendomx/sinpapel.git@v0.6.0"
+pip install "sinpapel @ git+ssh://git@github.com/aprendomx/sinpapel.git@v0.7.0"
 ```
 
 **Al actualizar desde 0.5.x — cambio potencialmente breaking:** desde 0.6.0

@@ -2,7 +2,7 @@
 name: sinpapel-sla
 description: Usar siempre que el usuario defina tiempos máximos por estado, escalamiento o alertas de vencimiento; use SLAConfiguracion, SLAEngine, las acciones notificar / escalar / rechazar / alertar, el comando sinpapel_verificar_slas, o los signals sla_breached y sla_action_executed. Cubre cómo configurar el cron, el dry-run y la integración con webhooks/notificaciones.
 tested_against:
-  - sinpapel==0.6.0
+  - sinpapel==0.7.0
 applies_to:
   - "**/migrations/*seed*sla*.py"
 ---

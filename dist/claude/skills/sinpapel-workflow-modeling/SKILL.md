@@ -2,7 +2,7 @@
 name: sinpapel-workflow-modeling
 description: Usar siempre que el usuario decore un modelo Django con @workflow_enabled, defina Estado / VersionFlujo / ConfiguracionTransicion, implemente resolve_workflow_version(), consulte el WorkflowRegistry, o pregunte cómo modelar máquinas de estado en sinpapel. Cubre también nombres de campos requeridos (state_field, workflow_key, version_field, expose_endpoints, endpoint_slug) y errores como WorkflowConfigurationError o WorkflowDuplicateKeyError.
 tested_against:
-  - sinpapel==0.6.0
+  - sinpapel==0.7.0
 applies_to:
   - "**/models.py"
   - "**/models/*.py"
