@@ -56,7 +56,7 @@ Fuente: `skills/sinpapel-project-setup/SKILL.md`
 
 ### sinpapel-side-effects
 
-Usar siempre que el usuario quiera ejecutar lógica adicional tras una transición de sinpapel (notificaciones, generación de oficios, integración con sistemas externos, llamadas a otros servicios), use el decorador register_side_effect, registre handlers en AppConfig.ready(), o pregunte qué pasa si un handler falla, cuándo se ejecuta y cómo afecta a la atomicidad de la transición.
+Usar siempre que el usuario quiera ejecutar lógica adicional tras una transición de sinpapel (notificaciones, generación de oficios, integración con sistemas externos, llamadas a otros servicios), genere un documento al entrar a un estado (InstanciaDocumento.archivo_generado, auto_carga), use el decorador register_side_effect, registre handlers en AppConfig.ready(), o pregunte qué pasa si un handler falla, cuándo se ejecuta y cómo afecta a la atomicidad de la transición.
 
 Fuente: `skills/sinpapel-side-effects/SKILL.md`
 
