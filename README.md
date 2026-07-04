@@ -2,7 +2,8 @@
 
 Skills multi-proveedor (Claude, Cursor, OpenCode) para el framework
 [sinpapel](https://github.com/aprendomx/sinpapel) y sus paquetes
-(`sinpapel-drf`, `sinpapel-webhooks`, `sinpapel-designer`, `sinpapel-vue`).
+(`sinpapel-drf`, `sinpapel-webhooks`, `sinpapel-reports`, `sinpapel-designer`,
+`sinpapel-vue`).
 
 Las skills **no reimplementan el framework**: encapsulan el conocimiento y las
 mejores prácticas para usarlo, de modo que cualquier agente de IA o
@@ -10,8 +11,8 @@ desarrollador pueda construir un sistema de trámites sobre sinpapel sin
 releer todo el código fuente.
 
 **Versiones objetivo:** `sinpapel==0.7.0`, `sinpapel-drf==0.4.0`,
-`sinpapel-webhooks==0.2.1`, `sinpapel-designer` @ rama `main` (S27.8+),
-`sinpapel-vue@0.3.0`.
+`sinpapel-webhooks==0.2.1`, `sinpapel-reports==0.2.0`, `sinpapel-designer`
+@ rama `main` (S27.8+), `sinpapel-vue@0.3.0`.
 
 ## Arquitectura: una sola fuente de verdad
 
@@ -53,6 +54,7 @@ deben editarse a mano**: los cambios viven en la fuente canónica.
 | `sinpapel-migrations-seeding` | Sembrar flujos vía data migrations y JSON v0.2 portable. |
 | `sinpapel-drf` | API REST: `expose_endpoints`, `SinpapelRouter`, dispatch de firma, endpoints `documentos`/`requisitos`. |
 | `sinpapel-webhooks` | Outbox + HMAC + reintentos + inbound idempotente. |
+| `sinpapel-reports` | Generación por plantilla: `ReportDataSource`, `ReportEngine.generar`/`generar_paquete`, overlay PDF, DOCX, endpoints DRF. |
 | `sinpapel-designer` | SPA Vue/Quasar standalone, round-trip JSON v0.2. |
 | `sinpapel-vue-setup` | Instalación de `@aprendomx/sinpapel-vue`, peer deps, `style.css`, temas `--sp-*`, i18n, quick-start. |
 | `sinpapel-vue-client` | `createSinpapelClient`, 11 métodos → endpoints `sinpapel-drf`, `AbortController`, `buildTransitionRequest`/`buildDocumentoUpload`. |

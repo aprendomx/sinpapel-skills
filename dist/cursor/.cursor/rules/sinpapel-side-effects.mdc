@@ -178,12 +178,21 @@ def generar_oficio(instance, user, **kwargs):
     return {"instancia_documento_id": inst_doc.id}
 ```
 
-**El framework NO renderiza plantillas.** `Documento` describe la plantilla
+**El núcleo NO renderiza plantillas.** `Documento` describe la plantilla
 (`plantilla` FileField, `contenido`, `tipo_plantilla` DOCX/PDF,
-`configuracion_overlay`), pero el render lo implementas tú dentro del side
-effect; sinpapel solo persiste el resultado en `archivo_generado`. Si el
-render es lento, encólalo (Celery) y retorna rápido — recuerda que un fallo
-del side effect **no** revierte la transición.
+`configuracion_overlay`), pero el render corre dentro del side effect. Dos
+opciones:
+
+1. **`sinpapel-reports` (recomendado):** `ReportEngine.generar(plantilla,
+   instance, actor=user)` renderiza (PDF overlay o DOCX) **y** persiste la
+   `InstanciaDocumento` con `archivo_generado` atómicamente — sustituye todo
+   el bloque `render_plantilla` + `InstanciaDocumento.objects.create` del
+   ejemplo. Ver la skill `sinpapel-reports`.
+2. **Render propio:** como en el ejemplo, tú produces el archivo y creas la
+   instancia; sinpapel solo persiste el resultado en `archivo_generado`.
+
+Si el render es lento, encólalo (Celery) y retorna rápido — recuerda que un
+fallo del side effect **no** revierte la transición.
 
 **Conexión con `auto_carga`:** si ese documento generado además es un
 **requisito** de un estado posterior, decláralo como `RequisitoEstadoDocumento`

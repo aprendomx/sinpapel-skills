@@ -1,0 +1,269 @@
+---
+description: "Usar siempre que el usuario genere documentos por plantilla con sinpapel-reports (PDF overlay con ReportLab/PyPDF2 o DOCX con docxtpl); implemente un ReportDataSource / CampoReporte / register_data_source en reports.py; use ReportEngine.generar / generar_paquete / register_renderer; edite Documento.configuracion_overlay (campos_solicitud, posiciones, posicion_base, fuente); monte los endpoints DRF field-catalog / overlay-config / generate / download; configure SINPAPEL_REPORTS_DEFAULT_DATA_SOURCE o SINPAPEL_REPORTS_PERMISSION_CLASSES; o vea DataSourceNotFoundError / UnsupportedTemplateError."
+globs: ["**/reports.py"]
+alwaysApply: false
+---
+# Generación de documentos con sinpapel-reports
+
+## Qué es
+
+Paquete Django del ecosistema sinpapel para generar documentos por registro
+a partir de plantillas: estampa datos vivos sobre un PDF en coordenadas
+(ReportLab + PyPDF2) o rellena una plantilla DOCX (docxtpl). El resultado se
+persiste como `sinpapel.InstanciaDocumento` (campo `archivo_generado`),
+opcionalmente empaquetado en ZIP.
+
+**No crea tablas propias** (sin migraciones): reutiliza `Documento` /
+`InstanciaDocumento` del núcleo sinpapel. La plantilla vive en
+`Documento.plantilla` (FileField), el formato en `Documento.tipo_plantilla`
+(`"PDF"` | `"DOCX"`) y la configuración de estampado en
+`Documento.configuracion_overlay` (JSONField).
+
+## Instalación
+
+```bash
+pip install "sinpapel-reports @ git+ssh://git@github.com/aprendomx/sinpapel-reports.git@v0.2.0"
+# Con capa REST:
+pip install "sinpapel-reports[drf] @ git+...@v0.2.0"
+```
+
+```python
+INSTALLED_APPS = [..., "sinpapel", "sinpapel_reports", ...]  # después de "sinpapel"
+```
+
+No requiere `migrate` propio (no define modelos).
+
+## Fuentes de datos (`ReportDataSource`)
+
+El seam que desacopla el paquete del dominio host. Se declara en un módulo
+`reports.py` de cualquier app instalada — `SinpapelReportsConfig.ready()`
+lo autodescubre vía `autodiscover_modules("reports")` (mismo patrón que
+`admin.py` / `webhooks.py`).
+
+```python
+# tu_app/reports.py — auto-descubierto al arrancar
+from sinpapel_reports.data_sources import CampoReporte, register_data_source
+
+
+@register_data_source
+class SolicitudDataSource:
+    name = "solicitud"   # identifica la fuente en configuracion_overlay["data_source"]
+
+    def get_field_catalog(self) -> list[CampoReporte]:
+        """Paleta de campos para el editor visual."""
+        return [
+            CampoReporte(key="folio", label="Folio"),                       # grupo="solicitud" default
+            CampoReporte(key="monto", label="Monto", grupo="financiero"),
+        ]
+
+    def build_context(self, target) -> dict:
+        """Dict de datos a estampar/rellenar para este target."""
+        return {"folio": target.pk, "monto": str(target.monto)}
+```
+
+- `ReportDataSource` es un `Protocol` (`runtime_checkable`): no se hereda,
+  basta cumplir `name` + los dos métodos.
+- `register_data_source` **instancia** la clase y la registra en
+  `ReportDataSourceRegistry` (singleton module-level). Registrar dos fuentes
+  con el mismo `name` sobreescribe silenciosamente (idempotente solo para el
+  mismo objeto).
+- `ReportDataSourceRegistry.get(name)` lanza `DataSourceNotFoundError` (el
+  mensaje lista los names registrados); `.names()` lista; `.clear()` vacía
+  (tests).
+- `FakeDataSource` (en `sinpapel_reports.data_sources`) es una fuente
+  determinística para tests, sin dependencia de modelos del host.
+
+## Esquema de `configuracion_overlay` (solo PDF)
+
+Dataclasses congeladas en `sinpapel_reports.schemas.overlay`
+(`OverlayConfig.from_json()` / `.to_json()`). Estructura real del JSON:
+
+```json
+{
+  "data_source": "solicitud",
+  "campos_solicitud": {
+    "folio": {"visible": true, "label": "Folio", "x": 100, "y": 200, "posiciones": []},
+    "curp":  {"visible": true, "label": "CURP", "posiciones": [
+      {"x": 100, "y": 200, "page": 2},
+      {"x": 300, "y": 500, "page": 3}
+    ]}
+  },
+  "campos_participantes": {},
+  "posicion_base": {"x_left": 50, "y_top_offset": 50, "line_height": 15},
+  "fuente": {"nombre": "Helvetica", "tamaño": 10}
+}
+```
+
+Reglas del renderer (`OverlayRenderer`):
+
+| Regla | Detalle |
+|---|---|
+| Dos grupos de campos | `campos_solicitud` y `campos_participantes` (claves históricas). Se fusionan con `OverlayConfig.campos()`, solicitud primero. |
+| `visible` default `false` | Un campo sin `"visible": true` **no se estampa**. |
+| Valores falsy se omiten | `if not valor: continue` — `0`, `""` y `None` no se estampan. Convierte a `str` en `build_context` si necesitas estampar ceros. |
+| Coordenada `y` desde ARRIBA | El renderer dibuja en `alto_página - y`. No uses el origen inferior-izquierdo nativo de PDF. |
+| Modo secuencial | Si **ningún** campo tiene `posiciones`: los campos sin `x`/`y` se apilan verticalmente desde `posicion_base` (una sola página, la primera). |
+| Modo multi-posición | Si **algún** campo tiene `posiciones`: cada entrada `{x, y, page}` estampa en su página. `page` es 1-based; páginas fuera de rango se omiten en silencio. |
+| Alias retro-compat | `posicion` → `posicion_base`; `tamano` → `tamaño`. `to_json()` siempre escribe `posicion_base` y `tamaño`. |
+| Fuente inválida | Fallback a Helvetica 10 con `logger.warning` (no lanza). |
+
+Para `tipo_plantilla == "DOCX"` la configuración de overlay se ignora:
+`DocxRenderer` pasa el contexto completo a la plantilla docxtpl
+(placeholders Jinja `{{ folio }}` en el .docx).
+
+## Generar documentos (`ReportEngine`)
+
+```python
+from sinpapel_reports.services.report_engine import ReportEngine
+
+# Firmas reales (actor y data_source son keyword-only y opcionales):
+#   generar(documento, target, *, actor=None, data_source=None) -> ResultadoGeneracion
+#   generar_paquete(documento, targets, *, actor=None, data_source=None) -> ResultadoPaquete
+
+res = ReportEngine.generar(documento, target, actor=request.user)
+# ResultadoGeneracion(frozen): res.instancia_id, res.filename, res.contenido (bytes)
+
+paquete = ReportEngine.generar_paquete(documento, [t1, t2, t3], actor=request.user)
+# ResultadoPaquete: paquete.generaciones (list[ResultadoGeneracion]),
+#                   paquete.zip_bytes, paquete.zip_filename
+```
+
+- **Resolución de la fuente** (en orden): argumento `data_source` →
+  `configuracion_overlay["data_source"]` →
+  `settings.SINPAPEL_REPORTS_DEFAULT_DATA_SOURCE` → lanza
+  `DataSourceNotFoundError`.
+- `generar` es **atómico**: crea `InstanciaDocumento(target=…, documento=…,
+  actor=…)` y guarda `archivo_generado` en la misma transacción. El nombre
+  del archivo es `slugify(documento.nombre)_<target_pk>.<ext>`;
+  `res.filename` es el name de storage (`documentos_generados/...`).
+- `generar_paquete` recibe **un** `Documento` y **varios** targets, en una
+  sola transacción (todo o nada). El ZIP se arma en memoria (`zip_bytes`);
+  persiste las instancias individuales, no el ZIP. Cada entrada del ZIP es
+  el basename del `filename` individual y `zip_filename` es
+  `slugify(documento.nombre)_paquete.zip`.
+- `Documento` sin `plantilla` o con `tipo_plantilla` sin renderer lanza
+  `UnsupportedTemplateError`.
+
+### Renderers custom
+
+```python
+def xlsx_renderer(path: str, contexto: dict, documento) -> tuple[bytes, str]:
+    ...
+    return contenido_bytes, "xlsx"
+
+ReportEngine.register_renderer("XLSX", xlsx_renderer)  # p.ej. en AppConfig.ready()
+```
+
+`"PDF"` y `"DOCX"` vienen pre-registrados; re-registrar un tipo lo
+sobreescribe (permite reemplazar el renderer PDF completo).
+
+## Capa REST (extra `[drf]`)
+
+```python
+# urls.py
+urlpatterns += [path("reports/", include("sinpapel_reports.drf.urls"))]
+```
+
+| Método | Ruta (relativa al mount) | Hace |
+|---|---|---|
+| GET | `field-catalog/?source=<name>` | `[{key, label, grupo}]` de la fuente. 400 sin `source`, 404 si no existe. |
+| GET | `documentos/<pk>/overlay-config/` | `configuracion_overlay` almacenada (`{}` si vacía). |
+| PUT | `documentos/<pk>/overlay-config/` | Valida con `OverlayConfig.from_json` y persiste el JSON tal cual. 400 si malformado. |
+| POST | `documentos/<pk>/generate/` | Body `{target_content_type: <ct_id>, target_object_id, data_source?}`. 201 `{"instancia_id", "filename"}`. |
+| GET | `instancias/<pk>/download/` | `FileResponse` attachment del `archivo_generado`. 404 si no hay archivo. |
+
+Mapeo de errores en `generate/`: `DataSourceNotFoundError` → 404, otro
+`SinpapelReportsError` → 400, ownership fallido → 403.
+
+### Seguridad
+
+- Desde 0.2.0 las vistas exigen `IsAuthenticated` por defecto,
+  sobreescribible con `SINPAPEL_REPORTS_PERMISSION_CLASSES` (lista de
+  clases, no dotted paths).
+- `GenerateView` valida **ownership básico** del target: si el target tiene
+  `owner`, `usuario` o `creado_por` (el primero no-None), debe ser igual a
+  `request.user`; si no tiene ninguno, se asume que el host controla el
+  acceso por otro medio. Para reglas más finas, envuelve las vistas o usa
+  tu propia permission class.
+
+## Settings
+
+| Setting | Default | Propósito |
+|---|---|---|
+| `SINPAPEL_REPORTS_DEFAULT_DATA_SOURCE` | `None` | Fuente usada cuando ni el argumento ni el documento la declaran. |
+| `SINPAPEL_REPORTS_PERMISSION_CLASSES` | `[IsAuthenticated]` | Permission classes de las 4 vistas DRF. |
+
+## Excepciones
+
+`SinpapelReportsError` (base) ← `DataSourceNotFoundError`,
+`UnsupportedTemplateError`, `OverlaySchemaError`.
+
+## Integración con el workflow (generar al entrar a un estado)
+
+El patrón canónico es un side effect que llama al engine — ver
+`sinpapel-side-effects` para el registro y la atomicidad:
+
+```python
+from sinpapel.services.side_effects import register_side_effect
+from sinpapel_reports.services.report_engine import ReportEngine
+
+def generar_oficio(seguimiento, **kwargs):
+    if seguimiento.estado_nuevo.nombre == "Aprobado":
+        ReportEngine.generar(documento_oficio, seguimiento.target,
+                             actor=seguimiento.usuario_accion)
+```
+
+## Testing
+
+```python
+# conftest.py — el registry es un singleton global: límpialo entre tests
+import pytest
+
+@pytest.fixture(autouse=True)
+def _clear_report_registry():
+    from sinpapel_reports.registry import ReportDataSourceRegistry
+    ReportDataSourceRegistry.clear()
+    yield
+    ReportDataSourceRegistry.clear()
+```
+
+- Usa `FakeDataSource` (o subclásala con otro `name`) en vez de tocar
+  modelos reales.
+- Genera plantillas PDF en blanco con ReportLab + PyPDF2 en un tmpdir y
+  apunta `MEDIA_ROOT` a un directorio temporal.
+- El autodiscover corre en `ready()`: una fuente declarada en
+  `tests/reports.py` se registra al arrancar, pero el fixture `clear()` la
+  borra — re-regístrala en el test si la necesitas.
+
+## Anti-patrones
+
+- **No** inventes una clave `"campos"` (lista) en `configuracion_overlay`:
+  el esquema real usa los dicts `campos_solicitud` / `campos_participantes`
+  con la forma `{visible, label, x, y, posiciones}`.
+- **No** olvides `"visible": true`: es `false` por default y el campo no se
+  estampa (síntoma: PDF sale idéntico a la plantilla).
+- **No** devuelvas números crudos que puedan ser `0` en `build_context` si
+  deben estamparse: los valores falsy se omiten. Devuelve `str(valor)`.
+- **No** uses coordenadas PDF nativas (origen abajo-izquierda): la `y` del
+  esquema se mide desde el borde superior.
+- **No** sigas `docs/usage/*.md` v0.1 del repo para la API: la firma real es
+  `generar_paquete(documento, targets)` (un documento, N targets) y
+  `ResultadoGeneracion` expone `instancia_id`/`filename`/`contenido` — no
+  existen `resultado.instancia` ni `resultado.path`.
+- **No** confundas `InstanciaDocumento.archivo` (subido por el usuario para
+  requisitos documentales) con `archivo_generado` (producido por el
+  sistema): este paquete solo escribe `archivo_generado`.
+- **No** intentes cambiar los permisos DRF con `override_settings` en
+  runtime: `permission_classes` se evalúa al **importar** el módulo de
+  vistas. Define `SINPAPEL_REPORTS_PERMISSION_CLASSES` en el settings del
+  proyecto antes de arrancar.
+- **No** montes la capa DRF pública sin revisar ownership: el check básico
+  solo cubre targets con `owner`/`usuario`/`creado_por`; cualquier otro
+  target es accesible por pk secuencial para todo usuario autenticado.
+
+## Siguiente paso
+
+- Diseñar el flujo que dispara la generación: `sinpapel-side-effects`.
+- Exponer el resto del workflow por REST: `sinpapel-drf` (paquete distinto;
+  los endpoints de reports se montan aparte con
+  `include("sinpapel_reports.drf.urls")`).

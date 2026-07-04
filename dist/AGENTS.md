@@ -38,7 +38,7 @@ Fuente: `skills/sinpapel-migrations-seeding/SKILL.md`
 
 ### sinpapel-overview
 
-Usar siempre que el usuario mencione el framework sinpapel, sinpapel-drf, sinpapel-webhooks o sinpapel-designer; necesite decidir qué skill cargar; pregunte qué hace el framework, su arquitectura, qué versión usar, o cómo se relacionan sus paquetes; o cuando aparezcan términos como @workflow_enabled, VersionFlujo, ConfiguracionTransicion, SeguimientoWorkflow, FielBackend, RegistroFirma, CondicionTransicion, SLAConfiguracion o MetadatosCapturables sin un contexto más específico.
+Usar siempre que el usuario mencione el framework sinpapel, sinpapel-drf, sinpapel-webhooks, sinpapel-reports o sinpapel-designer; necesite decidir qué skill cargar; pregunte qué hace el framework, su arquitectura, qué versión usar, o cómo se relacionan sus paquetes; o cuando aparezcan términos como @workflow_enabled, VersionFlujo, ConfiguracionTransicion, SeguimientoWorkflow, FielBackend, RegistroFirma, CondicionTransicion, SLAConfiguracion o MetadatosCapturables sin un contexto más específico.
 
 Fuente: `skills/sinpapel-overview/SKILL.md`
 
@@ -53,6 +53,12 @@ Fuente: `skills/sinpapel-predicates/SKILL.md`
 Usar siempre que el usuario instale sinpapel en un proyecto Django nuevo o existente, configure INSTALLED_APPS, MIDDLEWARE o cualquier setting con prefijo SINPAPEL_*; mencione errores como "Estado no resuelto" / "history_user is None" / "AppRegistryNotReady"; o pregunte por dependencias (django-simple-history, cryptography), versiones soportadas o el orden correcto de las apps. Cubre el primer migrate, la instalación desde git@v0.7.0 y la verificación post-setup.
 
 Fuente: `skills/sinpapel-project-setup/SKILL.md`
+
+### sinpapel-reports
+
+Usar siempre que el usuario genere documentos por plantilla con sinpapel-reports (PDF overlay con ReportLab/PyPDF2 o DOCX con docxtpl); implemente un ReportDataSource / CampoReporte / register_data_source en reports.py; use ReportEngine.generar / generar_paquete / register_renderer; edite Documento.configuracion_overlay (campos_solicitud, posiciones, posicion_base, fuente); monte los endpoints DRF field-catalog / overlay-config / generate / download; configure SINPAPEL_REPORTS_DEFAULT_DATA_SOURCE o SINPAPEL_REPORTS_PERMISSION_CLASSES; o vea DataSourceNotFoundError / UnsupportedTemplateError.
+
+Fuente: `skills/sinpapel-reports/SKILL.md`
 
 ### sinpapel-side-effects
 

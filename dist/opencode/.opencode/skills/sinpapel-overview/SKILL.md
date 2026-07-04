@@ -1,10 +1,11 @@
 ---
 name: sinpapel-overview
-description: Usar siempre que el usuario mencione el framework sinpapel, sinpapel-drf, sinpapel-webhooks o sinpapel-designer; necesite decidir qué skill cargar; pregunte qué hace el framework, su arquitectura, qué versión usar, o cómo se relacionan sus paquetes; o cuando aparezcan términos como @workflow_enabled, VersionFlujo, ConfiguracionTransicion, SeguimientoWorkflow, FielBackend, RegistroFirma, CondicionTransicion, SLAConfiguracion o MetadatosCapturables sin un contexto más específico.
+description: Usar siempre que el usuario mencione el framework sinpapel, sinpapel-drf, sinpapel-webhooks, sinpapel-reports o sinpapel-designer; necesite decidir qué skill cargar; pregunte qué hace el framework, su arquitectura, qué versión usar, o cómo se relacionan sus paquetes; o cuando aparezcan términos como @workflow_enabled, VersionFlujo, ConfiguracionTransicion, SeguimientoWorkflow, FielBackend, RegistroFirma, CondicionTransicion, SLAConfiguracion o MetadatosCapturables sin un contexto más específico.
 tested_against:
   - sinpapel==0.7.0
   - sinpapel-drf==0.4.0
   - sinpapel-webhooks==0.2.1
+  - sinpapel-reports==0.2.0
   - sinpapel-designer@S27.8
   - sinpapel-vue@0.3.0
 applies_to:
@@ -45,6 +46,7 @@ signals, y export/import portable JSON v0.2 (`sinpapel_export_flujo` /
 | `sinpapel` | Núcleo: workflow + audit + signing + predicates + SLA + metadata. | 0.7.0 |
 | `sinpapel-drf` | API REST DRF: 8 acciones por modelo (incluye `documentos`/`requisitos`) + CRUD admin + portabilidad. | 0.4.0 |
 | `sinpapel-webhooks` | Outbound (signals→outbox→worker, HMAC) + inbound (`@webhook_receiver`). | 0.2.1 |
+| `sinpapel-reports` | Generación de documentos por plantilla (PDF overlay + DOCX) sobre `Documento`/`InstanciaDocumento`. Capa DRF opcional. | 0.2.0 |
 | `sinpapel-designer` | SPA Vue 3 + Quasar standalone para diseñar flujos. Round-trip JSON v0.2. | S27.8+ |
 | `sinpapel-vue` | Widgets Vue 3 que consumen `sinpapel-drf` para seguir flujos en el frontend (incluye carga documental). | 0.3.0 |
 
@@ -64,6 +66,7 @@ signals, y export/import portable JSON v0.2 (`sinpapel_export_flujo` /
 | Sembrar flujos vía data migrations o importar JSON v0.2. | `sinpapel-migrations-seeding` |
 | Exponer flujos por API REST. | `sinpapel-drf` |
 | Emitir/consumir webhooks de transición. | `sinpapel-webhooks` |
+| Generar PDFs/DOCX por plantilla (overlay, ZIP, fuentes de datos). | `sinpapel-reports` |
 | Diseñar flujos visualmente. | `sinpapel-designer` |
 | Escribir tests sin tocar FIEL real ni red. | `sinpapel-testing` |
 | Instalar/montar la UI de seguimiento (Vue). | `sinpapel-vue-setup` |
@@ -128,6 +131,7 @@ signals, y export/import portable JSON v0.2 (`sinpapel_export_flujo` /
 sinpapel @ git+ssh://git@github.com/aprendomx/sinpapel.git@v0.7.0
 sinpapel-drf @ git+ssh://git@github.com/aprendomx/sinpapel-drf.git@v0.4.0
 sinpapel-webhooks @ git+ssh://git@github.com/aprendomx/sinpapel-webhooks.git@v0.2.1
+sinpapel-reports @ git+ssh://git@github.com/aprendomx/sinpapel-reports.git@v0.2.0
 sinpapel-designer @ rama main (S27.8+)
 sinpapel-vue @ npm @aprendomx/sinpapel-vue@0.3.0
 ```
@@ -137,5 +141,6 @@ sinpapel-vue @ npm @aprendomx/sinpapel-vue@0.3.0
 - Núcleo: <https://github.com/aprendomx/sinpapel>
 - REST: <https://github.com/aprendomx/sinpapel-drf>
 - Webhooks: <https://github.com/aprendomx/sinpapel-webhooks>
+- Reports: <https://github.com/aprendomx/sinpapel-reports>
 - Designer: <https://github.com/aprendomx/sinpapel-designer>
 - Vue widgets: <https://github.com/aprendomx/sinpapel-vue>
