@@ -3,11 +3,11 @@ name: sinpapel-overview
 description: Usar siempre que el usuario mencione el framework sinpapel, sinpapel-drf, sinpapel-webhooks, sinpapel-reports o sinpapel-designer; necesite decidir qué skill cargar; pregunte qué hace el framework, su arquitectura, qué versión usar, o cómo se relacionan sus paquetes; o cuando aparezcan términos como @workflow_enabled, VersionFlujo, ConfiguracionTransicion, SeguimientoWorkflow, FielBackend, RegistroFirma, CondicionTransicion, SLAConfiguracion o MetadatosCapturables sin un contexto más específico.
 tested_against:
   - sinpapel==0.8.2
-  - sinpapel-drf==0.4.3
+  - sinpapel-drf==0.4.4
   - sinpapel-webhooks==0.2.3
   - sinpapel-reports==0.2.2
   - sinpapel-designer@S27.8
-  - sinpapel-vue@0.3.0
+  - sinpapel-vue@0.4.0
 applies_to:
   - "**/models.py"
   - "**/services/*.py"
@@ -47,11 +47,11 @@ v0.2 (`sinpapel_export_flujo` / `sinpapel_import_flujo`).
 | Paquete | Qué añade | Versión |
 |---|---|---|
 | `sinpapel` | Núcleo: workflow + audit + signing + predicates + SLA + metadata. | 0.8.1 |
-| `sinpapel-drf` | API REST DRF: 8 acciones por modelo (incluye `documentos`/`requisitos`) + CRUD admin + portabilidad. | 0.4.3 |
+| `sinpapel-drf` | API REST DRF: 8 acciones por modelo (incluye `documentos`/`requisitos`) + CRUD admin + portabilidad. | 0.4.4 |
 | `sinpapel-webhooks` | Outbound (signals→outbox→worker, HMAC) + inbound (`@webhook_receiver`). | 0.2.3 |
 | `sinpapel-reports` | Generación de documentos por plantilla (PDF overlay + DOCX) sobre `Documento`/`InstanciaDocumento`. Capa DRF opcional. | 0.2.2 |
 | `sinpapel-designer` | SPA Vue 3 + Quasar standalone para diseñar flujos. Round-trip JSON v0.2. | S27.8+ |
-| `sinpapel-vue` | Widgets Vue 3 que consumen `sinpapel-drf` para seguir flujos en el frontend (incluye carga documental). | 0.3.0 |
+| `sinpapel-vue` | Widgets Vue 3 que consumen `sinpapel-drf` para seguir flujos en el frontend (incluye carga documental). | 0.4.0 |
 
 ## Qué skill usar para qué tarea
 
@@ -178,7 +178,7 @@ sinpapel-drf~=0.4.3
 sinpapel-webhooks~=0.2.3
 sinpapel-reports~=0.2.2
 sinpapel-designer @ rama main (S27.8+)
-sinpapel-vue @ npm @aprendomx/sinpapel-vue@0.3.0
+sinpapel-vue @ npm @aprendomx/sinpapel-vue@0.4.0
 ```
 
 ## Referencias canónicas

@@ -2,8 +2,8 @@
 name: sinpapel-vue-store
 description: Usar siempre que el usuario use el store Pinia useSeguimientoStore de sinpapel-vue o sus composables useTransition/useSpLabels, gestione loading granular (estados/historial/metadatos/transicion/documentos/requisitos), cancele requests con cancel(), cargue o suba documentos (cargarDocumentos/cargarRequisitos/subirDocumento/eliminarDocumento), construya el payload de transición/firma (buildPayload/buildSignaturePayload), valide el formulario de transición, o normalice el historial paginado del backend.
 tested_against:
-  - sinpapel-vue@0.3.0
-  - sinpapel-drf==0.4.3
+  - sinpapel-vue@0.4.0
+  - sinpapel-drf==0.4.4
 applies_to:
   - "**/sinpapel-vue/**"
   - "**/stores/useSeguimientoStore.js"
@@ -71,11 +71,17 @@ await tx.submit()  // valida, arma payload, envía, resetea en éxito
 Expone: `targetState`, `comentarios`, `condiciones`,
 `signatureBackend`, `signatureMode`, `signatureFields`, `signaturePayload`
 (computed), `loading`, `error`, `errors`, `buildPayload`, `submit`,
-`reset`, `validate`. *(sinpapel-vue 0.3.0 eliminó `montoAprobado`, alineado con
+`reset`, `validate`, y desde 0.4.0 `firmaRequerida` (Ref) +
+`checkFirmaRequerida()` — consulta el preview del destino y marca si la
+transición exigirá firma (requiere sinpapel-drf >= 0.4.4; tolerante a
+clientes sin `previewTransition` o errores: default `false`).
+*(sinpapel-vue 0.3.0 eliminó `montoAprobado`, alineado con
 sinpapel 0.7.0.)*
 
 ### Validación (`validate()`)
 - Estado destino obligatorio.
+- Si `firmaRequerida` es true y no hay backend de firma elegido →
+  `errors.signatureBackend` y submit bloqueado (0.4.0).
 - FIEL server-side: `.cer`, `.key` y contraseña obligatorios.
 
 ### buildSignaturePayload(backend, mode, fields)

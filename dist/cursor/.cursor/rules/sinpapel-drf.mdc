@@ -72,7 +72,7 @@ Para cada modelo con `expose_endpoints=True` se generan estas acciones en
 | Método + URL | Acción | Permiso |
 |---|---|---|
 | `GET /<slug>/<pk>/available-transitions/` | Estados destino válidos. | `IsAuthenticated` |
-| `POST /<slug>/<pk>/preview-transition/` | Previsualiza una transición. | `IsAuthenticated` |
+| `POST /<slug>/<pk>/preview-transition/` | Previsualiza una transición (desde 0.4.4 el response incluye `firma_requerida`). | `IsAuthenticated` |
 | `POST /<slug>/<pk>/transition/` | Ejecuta la transición. | `IsAuthenticated` (+ grupos vía engine) |
 | `GET /<slug>/<pk>/history/` | Historial paginado de simple-history. | `IsAuthenticated` |
 | `GET/PATCH /<slug>/<pk>/metadatos/` | Schema + valores; PATCH actualiza. | `IsAuthenticated` |

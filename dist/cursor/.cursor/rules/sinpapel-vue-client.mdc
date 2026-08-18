@@ -29,7 +29,7 @@ base se calcula en cada llamada: `{basePath}/{resource}/{pk}` (lee
 |---|---|---|---|
 | `availableTransitions()` | GET | `…/available-transitions/` | — |
 | `history({page, pageSize})` | GET | `…/history/` | params `page`, `page_size` |
-| `previewTransition(targetState, {signal})` | POST | `…/preview-transition/` | `{ target_state }` |
+| `previewTransition(targetState, {signal})` | POST | `…/preview-transition/` | `{ target_state }` — con sinpapel-drf ≥ 0.4.4 el reporte incluye `firma_requerida` |
 | `getMetadatos()` | GET | `…/metadatos/` | — |
 | `patchMetadatos(values)` | PATCH | `…/metadatos/` | `values` |
 | `slaStatus()` | POST | `…/sla-status/` | `null` |

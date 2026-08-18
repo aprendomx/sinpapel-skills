@@ -41,10 +41,13 @@ Devuelve estados destino válidos (sin filtrar por permisos).
   "predicados_fallidos": [...],
   "aprobadores_requeridos": [...],
   "side_effects": ["APROBADA"],
-  "historial_reciente": [...]
+  "historial_reciente": [...],
+  "firma_requerida": false
 }
 ```
 
+`firma_requerida` (sinpapel-drf ≥ 0.4.4, core 0.8.0): true si la transición
+exigirá `firma_payload` — la UI debe pedir la firma antes de ejecutar.
 `historial_reciente` típicamente incluye las últimas N transiciones del
 `SeguimientoWorkflow`. Si `SINPAPEL_EMIT_PREVIEW_EVENTS=True`, este
 endpoint además dispara el signal `transition_preview_requested`.

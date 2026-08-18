@@ -2,8 +2,8 @@
 name: sinpapel-vue-components
 description: Usar siempre que el usuario use o parametrice los componentes Vue de sinpapel-vue (SeguimientoPanel, StateBadge, HistoryTimeline, TransitionDialog, PreviewTransitionPanel, MetadatosForm, SlaStatusPanel, RequisitosPanel, DocumentosPanel), sus props/emits, la composición de pestañas del panel, el remount con :key, la accesibilidad del diálogo, la UI de cumplimiento/carga documental, o la UI de firma polimórfica (FIEL client/server-side, manual, fake) en TransitionDialog.
 tested_against:
-  - sinpapel-vue@0.3.0
-  - sinpapel-drf==0.4.3
+  - sinpapel-vue@0.4.0
+  - sinpapel-drf==0.4.4
 applies_to:
   - "**/sinpapel-vue/**"
   - "**/*.vue"
@@ -47,13 +47,18 @@ Props: `modelValue` (`false`), `client` (req), `currentState` (`''`),
 `estados` (`[]`). Emits: `update:modelValue`, `transitioned(result)`.
 Selector de estado destino, comentarios, condiciones y **firma polimórfica**.
 Validación: estado destino obligatorio; FIEL server-side exige
-`.cer`/`.key`/contraseña. La lógica del form vive en `useTransition` (ver
+`.cer`/`.key`/contraseña. Desde 0.4.0 (**firma exigible**, requiere
+sinpapel-drf ≥ 0.4.4): al elegir destino consulta el preview y, si
+`firma_requerida` es true, marca el fieldset de firma como requerido
+(deshabilita "Sin firma") y `validate()` bloquea el submit sin backend de
+firma. La lógica del form vive en `useTransition` (ver
 `sinpapel-vue-store`). *(sinpapel-vue 0.3.0 eliminó el campo monto aprobado,
 alineado con sinpapel 0.7.0.)*
 
 ### PreviewTransitionPanel
 Props: `client` (req), `targetState` (`''`). Debounce 300ms sobre
-`targetState`.
+`targetState`. Desde 0.4.0 muestra el indicador "requiere firma electrónica"
+cuando el reporte trae `firma_requerida`.
 
 ### MetadatosForm
 Props: `client` (req). Emits: `saved(values)`. Formulario generado desde el

@@ -2,7 +2,7 @@
 name: sinpapel-drf
 description: Usar siempre que el usuario exponga flujos sinpapel por API REST con Django REST Framework, instale sinpapel-drf, use expose_endpoints=True / endpoint_slug en @workflow_enabled, monte SinpapelRouter, llame los endpoints available-transitions / transition / history / preview-transition / metadatos / sla-status / documentos / requisitos, exporte / importe flujos por HTTP, o configure permisos sobre transiciones. Cubre la carga de documentos (InstanciaDocumento), el dispatch polimórfico de firma y el mapeo de errores.
 tested_against:
-  - sinpapel-drf==0.4.3
+  - sinpapel-drf==0.4.4
   - sinpapel==0.8.2
 applies_to:
   - "**/urls.py"
@@ -79,7 +79,7 @@ Para cada modelo con `expose_endpoints=True` se generan estas acciones en
 | Método + URL | Acción | Permiso |
 |---|---|---|
 | `GET /<slug>/<pk>/available-transitions/` | Estados destino válidos. | `IsAuthenticated` |
-| `POST /<slug>/<pk>/preview-transition/` | Previsualiza una transición. | `IsAuthenticated` |
+| `POST /<slug>/<pk>/preview-transition/` | Previsualiza una transición (desde 0.4.4 el response incluye `firma_requerida`). | `IsAuthenticated` |
 | `POST /<slug>/<pk>/transition/` | Ejecuta la transición. | `IsAuthenticated` (+ grupos vía engine) |
 | `GET /<slug>/<pk>/history/` | Historial paginado de simple-history. | `IsAuthenticated` |
 | `GET/PATCH /<slug>/<pk>/metadatos/` | Schema + valores; PATCH actualiza. | `IsAuthenticated` |

@@ -2,8 +2,8 @@
 name: sinpapel-vue-client
 description: Usar siempre que el usuario cree o use el cliente REST JS de sinpapel-vue (createSinpapelClient), llame uno de sus 11 métodos (availableTransitions, history, previewTransition, getMetadatos, patchMetadatos, slaStatus, listDocumentos, uploadDocumento, deleteDocumento, requisitos, transition), mapee llamadas a los endpoints de sinpapel-drf, cancele requests con AbortController/signal, o use buildTransitionRequest / buildDocumentoUpload para codificar el payload (JSON vs multipart FIEL / multipart de documentos).
 tested_against:
-  - sinpapel-vue@0.3.0
-  - sinpapel-drf==0.4.3
+  - sinpapel-vue@0.4.0
+  - sinpapel-drf==0.4.4
 applies_to:
   - "**/sinpapel-vue/**"
   - "**/client/sinpapelClient.js"
@@ -35,7 +35,7 @@ base se calcula en cada llamada: `{basePath}/{resource}/{pk}` (lee
 |---|---|---|---|
 | `availableTransitions()` | GET | `…/available-transitions/` | — |
 | `history({page, pageSize})` | GET | `…/history/` | params `page`, `page_size` |
-| `previewTransition(targetState, {signal})` | POST | `…/preview-transition/` | `{ target_state }` |
+| `previewTransition(targetState, {signal})` | POST | `…/preview-transition/` | `{ target_state }` — con sinpapel-drf ≥ 0.4.4 el reporte incluye `firma_requerida` |
 | `getMetadatos()` | GET | `…/metadatos/` | — |
 | `patchMetadatos(values)` | PATCH | `…/metadatos/` | `values` |
 | `slaStatus()` | POST | `…/sla-status/` | `null` |
