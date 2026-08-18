@@ -2,8 +2,8 @@
 name: sinpapel-webhooks
 description: Usar siempre que el usuario emita o consuma webhooks con sinpapel-webhooks; configure WebhookSubscription / WebhookEvent / WebhookDelivery / InboundWebhookEvent; use el decorador @webhook_receiver, los backends de entrega inline / outbox / celery, HMAC-SHA256 con X-Sinpapel-Signature, política de reintentos con backoff y dead letter, idempotencia inbound, o el Admin REST API. Cubre el cron del worker y la verificación de firmas desde cliente.
 tested_against:
-  - sinpapel-webhooks==0.2.1
-  - sinpapel==0.7.0
+  - sinpapel-webhooks==0.2.3
+  - sinpapel==0.8.2
 applies_to:
   - "**/webhooks.py"
   - "**/receivers/**/*.py"
@@ -23,10 +23,10 @@ applies_to:
 ## Instalación
 
 ```bash
-pip install "sinpapel-webhooks @ git+ssh://git@github.com/aprendomx/sinpapel-webhooks.git@v0.2.1"
+pip install "sinpapel-webhooks~=0.2.3"
 # Extras:
-pip install "sinpapel-webhooks[celery] @ git+...@v0.2.1"   # backend celery
-pip install "sinpapel-webhooks[admin] @ git+...@v0.2.1"    # Admin REST API
+pip install "sinpapel-webhooks[celery]~=0.2.3"   # backend celery
+pip install "sinpapel-webhooks[admin]~=0.2.3"    # Admin REST API
 ```
 
 ```python
@@ -112,7 +112,7 @@ workers concurrentes para outbox.
 ```
 POST /your-webhook HTTP/1.1
 Content-Type: application/json; charset=utf-8
-User-Agent: sinpapel-webhooks/0.2.1
+User-Agent: sinpapel-webhooks/0.2.3
 X-Sinpapel-Signature: t=<unix-ts>,v1=<sha256-hex>
 X-Sinpapel-Event-Id: <uuid>
 X-Sinpapel-Event-Type: <event_type>

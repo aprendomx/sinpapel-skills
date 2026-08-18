@@ -2,7 +2,7 @@
 name: sinpapel-workflow-modeling
 description: Usar siempre que el usuario decore un modelo Django con @workflow_enabled, defina Estado / VersionFlujo / ConfiguracionTransicion, implemente resolve_workflow_version(), consulte el WorkflowRegistry, o pregunte cómo modelar máquinas de estado en sinpapel. Cubre también nombres de campos requeridos (state_field, workflow_key, version_field, expose_endpoints, endpoint_slug) y errores como WorkflowConfigurationError o WorkflowDuplicateKeyError.
 tested_against:
-  - sinpapel==0.7.0
+  - sinpapel==0.8.2
 applies_to:
   - "**/models.py"
   - "**/models/*.py"
@@ -38,6 +38,11 @@ def workflow_enabled(
 
 - `WorkflowConfigurationError` si `state_field` o `version_field` no existen
   en el modelo, o si `endpoint_slug` no es URL-safe.
+- `WorkflowConfigurationError` si el modelo no cumple el contrato `Trazable`:
+  desde 0.8.0 el decorador valida **en tiempo de decoración** que el modelo
+  tenga el campo `actualizado` (antes fallaba en runtime en la primera
+  transición). Hereda `sinpapel.mixins.Trazable` o define un
+  `DateTimeField` llamado `actualizado`.
 - `WorkflowDuplicateKeyError` si `workflow_key` ya fue registrado por otro
   modelo distinto.
 
@@ -92,8 +97,8 @@ Nodo del grafo (catálogo). Hereda `Catalogo` (que hereda `Trazable`).
 
 | Campo | Tipo | Notas |
 |---|---|---|
-| `nombre` | `CharField(250)` | Identificador único. Convención: `MAYÚSCULAS_GUION_BAJO` (`CAPTURA`, `EN_REVISION`). |
-| `activo` | `BooleanField` | Estados inactivos no participan en transiciones. |
+| `nombre` | `CharField(250)` | **Único a nivel BD** desde 0.8.0 (constraint `sin_estado_nombre_uniq`); dos estados homónimos ya no pueden existir. Convención: `MAYÚSCULAS_GUION_BAJO` (`CAPTURA`, `EN_REVISION`). |
+| `activo` | `BooleanField` | Con `SINPAPEL_ENFORCE_ESTADO_ACTIVO=True` (default `False`, 0.8.1), un estado inactivo no es destino válido y desaparece de `available_transitions`. |
 | `etapa` | `FK(Etapa)` | Agrupación visual (nullable). |
 | `color` | `CharField(7)` | Color hex para UI. Default `#4DEFE2`. |
 | `orden` | `IntegerField` | Ordenamiento visual. |
@@ -108,7 +113,7 @@ Versión inmutable del workflow. Con `HistoricalRecords`.
 | Campo | Tipo | Notas |
 |---|---|---|
 | `nombre` | `CharField(100)` | Identificador del flujo (ej. `"solicitudes"`). |
-| `activo` | `BooleanField` | Convención: solo **uno** activo por `workflow_key`. |
+| `activo` | `BooleanField` | Solo **una** versión activa por `nombre`, forzado a nivel BD desde 0.8.0 (constraint condicional `sin_versionflujo_activa_uniq`). Para activar una nueva versión, desactiva la anterior antes o en la misma transacción. |
 | `metadatos` | `JSONField` | Para el designer (posiciones de nodos, etc.). |
 | `creado_por` | `FK(User)` | Quién creó la versión. |
 
@@ -122,6 +127,7 @@ Arista del grafo. Con `HistoricalRecords` (incluye `grupos_permitidos`).
 | `estado_origen` | `FK(Estado)` | Origen. |
 | `estado_destino` | `FK(Estado)` | Destino. |
 | `grupos_permitidos` | `M2M(Group)` | Grupos Django autorizados. **Vacío = cualquiera**. |
+| `requiere_firma` | `BooleanField` | Nuevo en 0.8.0, default `False`. Con `True`, `transition()` sin `firma_payload` lanza `PermissionError`, y `preview_transition()` incluye la key `firma_requerida: bool`. |
 
 `unique_together = (flujo, estado_origen, estado_destino)`.
 
@@ -135,6 +141,10 @@ este orden (ver `WorkflowEngine._resolve_flujo`):
 2. Si no, si el modelo define `resolve_workflow_version(self)`, lo invoca.
 3. Si tampoco, las queries a `ConfiguracionTransicion` no filtran por
    flujo (usan **todas** las aristas sin distinción).
+
+Desde 0.7.1 `instance.available_transitions()` filtra por el `VersionFlujo`
+resuelto y usa cache (antes, por bug, devolvía transiciones de **todos**
+los flujos).
 
 **Recomendación**: siempre provee uno de los dos mecanismos. Sin filtro de
 flujo, un sistema con varias versiones produce comportamiento ambiguo.
@@ -163,9 +173,9 @@ propiedad `effective_slug` (= `endpoint_slug or workflow_key + "s"`).
   (`"solicitud"`, `"tramite_sep"`).
 - **Nombres de `Estado`**: `MAYÚSCULAS_GUION_BAJO` (consistente con el
   framework: `CAPTURA`, `EN_REVISION`, `APROBADA`).
-- **Una sola `VersionFlujo` activa por `workflow_key`** (el framework no lo
-  fuerza, pero `resolve_workflow_version()` típicamente filtra por
-  `activo=True`).
+- **Una sola `VersionFlujo` activa por `nombre`** — desde 0.8.0 el framework
+  **sí lo fuerza** a nivel BD (constraint `sin_versionflujo_activa_uniq`);
+  `resolve_workflow_version()` típicamente filtra por `activo=True`.
 - **`on_delete=PROTECT`** en el FK a `Estado`: nunca borres en cascada
   registros de trámite porque un catálogo se rehidrate.
 - **Hereda `Trazable`** del propio framework (`sinpapel.mixins.Trazable`)
@@ -192,6 +202,7 @@ propiedad `effective_slug` (= `endpoint_slug or workflow_key + "s"`).
 | `WorkflowConfigurationError: state_field 'estado' not on model` | Campo no existe o tiene otro nombre. | Corregir `state_field=...` o renombrar el campo. |
 | `WorkflowDuplicateKeyError: workflow_key 'solicitud' already registered by Otra` | Otro modelo ya usa esa key. | Renombrar `workflow_key`. |
 | `WorkflowConfigurationError: endpoint_slug 'mis_slugs' is not URL-safe` | Slug contiene caracteres fuera de `[a-z0-9-]+`. | Usar kebab-case. |
+| `WorkflowConfigurationError: Model X has no field 'actualizado'` | El modelo decorado no cumple el contrato `Trazable` (0.8.0 valida en decoración). | Heredar `sinpapel.mixins.Trazable` o definir un `DateTimeField` llamado `actualizado`. |
 
 ## Siguiente paso
 

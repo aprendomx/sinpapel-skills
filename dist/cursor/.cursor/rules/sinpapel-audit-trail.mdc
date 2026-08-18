@@ -24,13 +24,17 @@ fila).
 class Trazable(models.Model):
     creado = models.DateTimeField(auto_now_add=True, null=True)
     actualizado = models.DateTimeField(auto_now=True, null=True)
-    autor = models.ForeignKey(User, null=True, related_name="%(class)s_autor", on_delete=CASCADE)
-    modificador = models.ForeignKey(User, null=True, related_name="%(class)s_modificador", on_delete=CASCADE)
+    autor = models.ForeignKey(User, null=True, related_name="%(class)s_autor", on_delete=SET_NULL)
+    modificador = models.ForeignKey(User, null=True, related_name="%(class)s_modificador", on_delete=SET_NULL)
     caducidad = models.DateTimeField(null=True, blank=True)
 
     class Meta:
         abstract = True
 ```
+
+Desde 0.8.0, `autor` y `modificador` usan **`SET_NULL`** (antes `CASCADE`):
+borrar un `User` ya **no** borra en cascada sus registros — se preservan
+con la autoría en `NULL` (migración `0007`).
 
 Hereda donde quieras `creado`/`actualizado`/`autor`/`modificador` en tu
 modelo de dominio (`Solicitud(MetadatosCapturables, Trazable)`).
@@ -45,7 +49,8 @@ Cada `transition()` exitosa crea una fila. Campos relevantes:
 - `comentarios`, `condiciones`, `ip_address`.
   *(sinpapel 0.7.0 eliminó el campo `monto_aprobado`, migración `0006`.)*
 - `documentos_adjuntos` (JSONField).
-- `firma_registro` (OneToOne nullable a `RegistroFirma`).
+- `firma_registro` (OneToOne nullable a `RegistroFirma`; desde 0.8.0 con
+  `on_delete=PROTECT`).
 
 Consulta canónica:
 
@@ -62,9 +67,15 @@ historia = (
 )
 ```
 
-`SeguimientoWorkflow` **no se borra**: la auditoría asume inmutabilidad.
-Si necesitas anular una transición, ejecuta otra transición de "reversa";
-**no** borres ni edites filas existentes.
+`SeguimientoWorkflow` es **append-only a nivel ORM** desde 0.8.0: el
+`save()` de un registro existente (update) y el `delete()` lanzan
+`ValueError`. `RegistroFirma.delete()` también lanza — para revocar una
+firma usa `backend.revoke()`, no el borrado. Si necesitas anular una
+transición, ejecuta otra transición de "reversa".
+
+**Advertencia**: los `queryset.update()` / `queryset.delete()` masivos
+**NO** pasan por estos hooks del ORM — siguen pudiendo mutar o borrar
+filas. No los uses sobre estas tablas.
 
 ## `HistoricalRecords` (simple-history)
 
@@ -153,7 +164,12 @@ está expuesto por defecto en `sinpapel-drf` v0.4.0).
   dispara los signals de simple-history. Si tienes que hacerlo, registra
   manualmente la entrada histórica.
 - **No** edites filas de `SeguimientoWorkflow` ni `Historical*`: rompe
-  la inmutabilidad.
+  la inmutabilidad. Desde 0.8.0 el ORM lo impide (`ValueError` en `save()`
+  de update y en `delete()`), pero `queryset.update()/delete()` masivos
+  se saltan esos hooks — evítalos.
+- **No** borres un `RegistroFirma` para "deshacer" una firma:
+  `RegistroFirma.delete()` lanza `ValueError`; revoca vía
+  `backend.revoke()`.
 - **No** asumas que `history_user` está poblado en background; defensivo:
   `(h.history_user.username if h.history_user else "system")`.
 - **No** olvides `HistoryRequestMiddleware` después de

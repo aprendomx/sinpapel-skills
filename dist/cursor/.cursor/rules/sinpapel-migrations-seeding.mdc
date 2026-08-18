@@ -53,23 +53,26 @@ def seed(apps, schema_editor):
         defaults={"activo": True, "etapa": etapa_final, "orden": 4, "color": "#D32F2F"},
     )
 
-    # 3. Versión del flujo (única activa por workflow_key)
+    # 3. Versión del flujo (única activa por nombre; ver nota 0.8.0 abajo)
     flujo, _ = VersionFlujo.objects.get_or_create(
         nombre="solicitudes",
         defaults={"activo": True, "descripcion": "Flujo estándar de solicitudes v1"},
     )
 
-    # 4. Transiciones (aristas)
+    # 4. Transiciones (aristas). `requiere_firma` (0.8.0, default False)
+    # es seedeable: con True, transition() sin firma_payload lanza
+    # PermissionError.
     aristas = [
-        (captura, revision),
-        (revision, aprobada),
-        (revision, rechazada),
+        (captura, revision, False),
+        (revision, aprobada, True),   # aprobar exige firma
+        (revision, rechazada, False),
     ]
-    for origen, destino in aristas:
+    for origen, destino, firma in aristas:
         ConfiguracionTransicion.objects.get_or_create(
             flujo=flujo,
             estado_origen=origen,
             estado_destino=destino,
+            defaults={"requiere_firma": firma},
         )
 
 
@@ -90,6 +93,30 @@ class Migration(migrations.Migration):
 ```
 
 Plantilla generadora en `assets/seed_flujo_template.py`.
+
+## Constraints de unicidad (0.8.0)
+
+Dos reglas que ahora se enforcan **a nivel BD** y que todo seed debe
+respetar:
+
+- **`Estado.nombre` es único** (constraint `sin_estado_nombre_uniq`). Dos
+  estados homónimos ya no pueden existir; `get_or_create(nombre=...)` sigue
+  siendo el patrón correcto — `nombre` es la clave natural del catálogo.
+- **Solo una `VersionFlujo` activa por `nombre`** (constraint condicional
+  `sin_versionflujo_activa_uniq`). Un seed que **active una versión nueva**
+  de un flujo existente debe desactivar la anterior **antes**, o en la
+  misma transacción, o el constraint rechaza el INSERT/UPDATE:
+
+```python
+def seed(apps, schema_editor):
+    VersionFlujo = apps.get_model("sinpapel", "VersionFlujo")
+    # Desactivar la versión activa anterior ANTES de activar la nueva
+    # (RunPython corre en una transacción, así que ambas van juntas).
+    VersionFlujo.objects.filter(nombre="solicitudes", activo=True).update(activo=False)
+    VersionFlujo.objects.create(
+        nombre="solicitudes", activo=True, descripcion="Flujo de solicitudes v2"
+    )
+```
 
 ## Idempotencia con `get_or_create`
 
@@ -183,7 +210,10 @@ python manage.py sinpapel_import_flujo flujo.json
 
 Crea `VersionFlujo` (por defecto `activo=False` por seguridad) + sus
 `ConfiguracionTransicion` y `RequisitoEstadoDocumento`. Rechaza
-referencias faltantes (estados/grupos/tipos doc no existentes).
+referencias faltantes (estados/grupos/tipos doc no existentes). Al
+activar después la versión importada, recuerda desactivar la anterior
+antes o en la misma transacción (constraint
+`sin_versionflujo_activa_uniq`, 0.8.0).
 
 `sinpapel-drf` expone los mismos como `GET /flujos/<pk>/export/` y
 `POST /flujos/import/` (`?dry_run=true` para validar sin persistir).
@@ -208,6 +238,12 @@ def seed(apps, schema_editor):
 
 (`deserialize_flujo` es la API canónica; consulta su firma actual antes
 de copiar el ejemplo a un proyecto.)
+
+Desde 0.8.0 `deserialize_flujo` **valida la estructura del payload**
+(`flujo`, `flujo.nombre`, `transiciones`, `requisitos`): un JSON malformado
+lanza un `ValueError` accionable en vez de un `KeyError` opaco. Si tu
+migración de import falla con `ValueError`, el mensaje te dice qué key
+falta en el JSON.
 
 ## Anti-patrones
 

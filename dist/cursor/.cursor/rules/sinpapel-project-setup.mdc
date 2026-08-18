@@ -1,5 +1,5 @@
 ---
-description: "Usar siempre que el usuario instale sinpapel en un proyecto Django nuevo o existente, configure INSTALLED_APPS, MIDDLEWARE o cualquier setting con prefijo SINPAPEL_*; mencione errores como \"Estado no resuelto\" / \"history_user is None\" / \"AppRegistryNotReady\"; o pregunte por dependencias (django-simple-history, cryptography), versiones soportadas o el orden correcto de las apps. Cubre el primer migrate, la instalación desde git@v0.7.0 y la verificación post-setup."
+description: "Usar siempre que el usuario instale sinpapel en un proyecto Django nuevo o existente, configure INSTALLED_APPS, MIDDLEWARE o cualquier setting con prefijo SINPAPEL_*; mencione errores como \"Estado no resuelto\" / \"history_user is None\" / \"AppRegistryNotReady\"; o pregunte por dependencias (django-simple-history, cryptography, Pillow), versiones soportadas o el orden correcto de las apps. Cubre el primer migrate, la instalación desde PyPI (pip install \"sinpapel~=0.8.1\") y la verificación post-setup."
 globs: ["**/settings*.py", "**/requirements*.txt", "**/pyproject.toml"]
 alwaysApply: false
 ---
@@ -14,28 +14,29 @@ alwaysApply: false
 
 ## Instalación
 
-`sinpapel` se distribuye por git (no publicado en PyPI todavía). Fija una
-versión exacta:
+`sinpapel` se publica en **PyPI**. Contrato pre-1.0: los minors PUEDEN
+romper; pinea con `~=` al patch:
 
 ```bash
-pip install "sinpapel @ git+ssh://git@github.com/aprendomx/sinpapel.git@v0.7.0"
+pip install "sinpapel~=0.8.1"
 ```
 
-**Al actualizar desde 0.5.x — cambio potencialmente breaking:** desde 0.6.0
-el motor **enforca** los `RequisitoEstadoDocumento` finos en las transiciones
-(antes se sembraban/exportaban pero nunca se evaluaban). Si tu base ya tiene
-requisitos configurados, transiciones que antes pasaban ahora pueden lanzar
-`PermissionError` hasta que existan las `InstanciaDocumento` con el porcentaje
-requerido. Flujos sin requisitos documentales se comportan igual que 0.5.x; el
-flag coarse `expediente_obligatorio` no cambia. Corre `python manage.py migrate`
-para la migración `0004` (añade `InstanciaDocumento.porcentaje`, default 100).
-Detalle en `sinpapel-transitions` y `sinpapel-migrations-seeding`.
+Ya **no** se recomienda instalar desde git+ssh con tags (mecanismo de las
+versiones ≤0.7.x).
+
+**Al hacer upgrade entre versiones:** los breaking changes por versión están
+documentados en `docs/development/upgrading.md` (repo sinpapel), y la
+superficie pública en `docs/development/api-publica.md`. Tras cada upgrade
+corre `python manage.py migrate` — 0.8.x trae migraciones nuevas (la serie
+llega hasta `0009`; 0.8.0 añade `0007`–`0009`).
 
 Dependencias transitivas que se instalan automáticamente:
 
 - `Django>=5.0`
 - `django-simple-history>=3.5`
 - `cryptography>=42.0` (la usa `FielBackend`)
+- `Pillow` (ya declarada desde 0.8.x; antes una instalación limpia fallaba
+  con `fields.E210` y había que instalarla a mano)
 
 **No instales `trazable` por separado**: el mixin está inlined en
 `sinpapel/mixins.py`.
@@ -99,6 +100,10 @@ None`. Va **después** de `AuthenticationMiddleware` porque depende de
 | `SINPAPEL_CACHE_ALIAS` | `"default"` | Alias del cache backend (django.core.cache.caches). |
 | `SINPAPEL_CACHE_TIMEOUT` | `3600` | TTL en segundos para cache interna. |
 | `SINPAPEL_PREDICATE_MODULES` | `None` | Whitelist de módulos para predicados `python_path` (seguridad). Lista de dotted paths. |
+| `SINPAPEL_FIEL_TRUSTED_CA_BUNDLE` | `None` | ACs de confianza para la cadena FIEL (path PEM o lista de paths con ACs del SAT). Sin bundle, las firmas se persisten como `VALIDA_SIN_CADENA`. Nuevo en 0.8.0. |
+| `SINPAPEL_SLA_SYSTEM_USER` | `None` | Username del usuario de sistema con el que las acciones SLA `escalar`/`rechazar` ejecutan la transición automática (debe tener permiso). Nuevo en 0.8.0. |
+| `SINPAPEL_SLA_NOTIFY_HANDLER` | `None` | Dotted path del callable de notificación SLA, firma `handler(instance, descriptor)`; sin handler solo se loggea. Nuevo en 0.8.0. |
+| `SINPAPEL_ENFORCE_ESTADO_ACTIVO` | `False` | Con `True`, un `Estado.activo=False` no es destino válido y desaparece de `available_transitions`. Nuevo en 0.8.1. |
 
 Detalle por setting en `references/settings-reference.md`.
 
@@ -129,7 +134,9 @@ Aplica:
 - Tablas de `sinpapel` (`sinpapel_estado`, `sinpapel_versionflujo`,
   `sinpapel_configuraciontransicion`, `sinpapel_seguimientoworkflow`,
   `sinpapel_registrofirma`, `sinpapel_condiciontransicion`,
-  `sinpapel_slaconfiguracion`, etc.).
+  `sinpapel_slaconfiguracion`, etc.). La serie de migraciones del
+  framework llega hasta `0009` en 0.8.x (0.8.0 añade `0007`–`0009`:
+  constraints de unicidad, `requiere_firma`, cambios de `on_delete`).
 
 ## Verificación post-setup
 
@@ -145,9 +152,10 @@ print(get_signature_backend().name)     # 'manual' | 'fiel' | 'fake'
 
 ## Anti-patrones
 
-- **No** uses `pip install sinpapel` (no está en PyPI). Usa la URL git con
-  tag fijo.
-- **No** uses `>=0.5,<0.6`. La 0.x admite breaking changes; fija un tag/commit.
+- **No** instales desde git+ssh con tag (`sinpapel @ git+ssh://...@v0.7.0`):
+  ese era el mecanismo de las versiones viejas. Instala desde PyPI.
+- **No** uses `pip install sinpapel` sin pinear ni rangos amplios tipo
+  `>=0.5,<1.0`. Pre-1.0 los minors pueden romper; pinea `sinpapel~=0.8.1`.
 - **No** pongas `simple_history` después de `sinpapel`.
 - **No** olvides `HistoryRequestMiddleware` — el audit trail funciona, pero
   `history_user` queda en `None`.

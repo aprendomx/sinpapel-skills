@@ -8,9 +8,17 @@ alwaysApply: false
 ## El motor: `WorkflowEngine`
 
 El servicio canónico es `sinpapel.services.workflow_engine.WorkflowEngine`.
-Atómico (`@transaction.atomic`): valida grupos, predicados, requisitos
-documentales, ejecuta la transición, persiste `SeguimientoWorkflow`,
-ejecuta side effects y opcionalmente persiste `RegistroFirma`.
+Atómico (`transaction.atomic`): valida grupos, predicados, requisitos
+documentales, ejecuta la transición, persiste `SeguimientoWorkflow` y
+opcionalmente persiste `RegistroFirma`. Los **side effects corren después
+del commit** de la transacción del motor (ver `sinpapel-side-effects`).
+
+**Concurrencia segura (0.7.1):** dentro de la transacción, `cambiar_estado`
+re-lee el row con `SELECT ... FOR UPDATE` y **revalida sobre el estado
+fresco**. Dos transiciones concurrentes desde el mismo estado (o una copia
+stale de la instancia, ej. doble-submit) ya no pueden pasar ambas la
+validación: la segunda recibe `PermissionError`. No hay carrera
+check-then-act.
 
 **`WorkflowService` no existe.** Si ves código que lo importa, hay que
 migrarlo a `WorkflowEngine`.
@@ -28,6 +36,13 @@ instance.preview_transition(target_state, user)   # dict
 
 `target_state` es el **nombre** del estado destino (ej. `"EN_REVISION"`),
 no el id ni el objeto.
+
+**`available_transitions` desde 0.7.1** filtra por el `VersionFlujo`
+resuelto para la instancia y usa cache (antes devolvía transiciones de
+**todos** los flujos con el mismo estado origen). Además, con
+`SINPAPEL_ENFORCE_ESTADO_ACTIVO=True` (setting nuevo en 0.8.1, default
+`False`), un `Estado.activo=False` no es destino válido y desaparece de
+la lista.
 
 ## Flujo recomendado en una vista
 
@@ -123,9 +138,20 @@ Devuelve un dict sin mutar nada (no ejecuta side effects ni firma):
     "predicados_fallidos": [...],
     "aprobadores_requeridos": [...],
     "side_effects": ["DISPERSADA"],   # nombres de handlers que se invocarían
+    "firma_requerida": False,         # nueva key en 0.8.0
     "historial_reciente": [...],
 }
 ```
+
+**`firma_requerida` (0.8.0):** `True` si la `ConfiguracionTransicion` de la
+arista tiene `requiere_firma=True`. Úsalo en la UI para pedir la firma
+**antes** de ejecutar: `transition()` sin `firma_payload` lanzará
+`PermissionError`.
+
+**`historial_reciente` (fix 0.7.1):** ahora regresa contenido real — los
+últimos 5 `SeguimientoWorkflow` de la instancia (antes SIEMPRE `[]` por un
+bug de filtro sobre la GFK). Cada entrada trae `fecha`, `transicion`
+(`"ORIGEN → DESTINO"`), `usuario` y `comentarios`.
 
 **Desde sinpapel 0.6.0** los `RequisitoEstadoDocumento` del estado actual
 **se enforcan** en la transición (antes solo se sembraban/exportaban). Cada
@@ -148,7 +174,7 @@ Si `SINPAPEL_EMIT_PREVIEW_EVENTS=True`, además se dispara el signal
 
 | Excepción | Significado | HTTP sugerido |
 |---|---|---|
-| `PermissionError` | Cualquier bloqueo de `puede_cambiar_estado`: el usuario no pertenece a ningún `grupos_permitidos`, un predicado falla, o (desde 0.6.0) falta un requisito documental. Lleva el `mensaje` del primer bloqueo. | 403 |
+| `PermissionError` | Cualquier bloqueo de `puede_cambiar_estado`: el usuario no pertenece a ningún `grupos_permitidos`, un predicado falla, o (desde 0.6.0) falta un requisito documental. Lleva el `mensaje` del primer bloqueo. Desde 0.7.1 también: transición concurrente / copia stale (la revalidación bajo lock la rechaza). Desde 0.8.0 también: transición con `requiere_firma=True` sin `firma_payload`, o un `registro_firma_id` (Modo B) que no pasa las validaciones (ver abajo). | 403 |
 | `ValueError` | El nombre del estado destino no es válido o no existe la transición desde el estado actual. | 400 |
 | `sinpapel.signing.exceptions.SignatureValidationError` | El `firma_payload` no verifica. | 400 |
 | `sinpapel.signing.exceptions.SignatureBackendNotConfiguredError` | `SINPAPEL_SIGNATURE_BACKEND` apunta a algo no importable. | 500 |
@@ -159,17 +185,17 @@ escribes una vista propia, replica el mapeo.
 
 ## Firma electrónica en la transición
 
+**`ConfiguracionTransicion.requiere_firma` (0.8.0, default `False`):** la
+exigencia de firma vive en la configuración de la arista, no en la buena fe
+del caller. Con `requiere_firma=True`, `transition()` sin `firma_payload`
+lanza `PermissionError`, y `preview_transition()` lo anuncia con
+`firma_requerida: True`.
+
 Si la transición debe firmarse, pasa `firma_payload`. El motor soporta
-dos formas (ver `WorkflowEngine.cambiar_estado` y `sinpapel-signing`):
+dos modos (ver `WorkflowEngine.cambiar_estado` y `sinpapel-signing`):
 
-**Forma A — el caller ya creó el `RegistroFirma`:**
-
-```python
-firma_payload = {"registro_firma_id": 17}
-```
-
-**Forma B — el motor crea el `RegistroFirma` invocando `FielBackend`
-(Modo A, client-side):**
+**Modo A — el motor crea el `RegistroFirma` invocando el backend
+configurado:**
 
 ```python
 firma_payload = {
@@ -178,6 +204,22 @@ firma_payload = {
     "certificado_cer_b64": "...",           # certificado X.509 DER base64
 }
 ```
+
+Desde 0.8.0 el backend se resuelve vía `get_signature_backend()` (respeta
+`SINPAPEL_SIGNATURE_BACKEND`) — **ya no** se instancia `FielBackend`
+hardcodeado. Los kwargs extra del payload (todo lo que no sea `contenido`)
+se pasan al backend.
+
+**Modo B — el caller ya creó el `RegistroFirma`:**
+
+```python
+firma_payload = {"registro_firma_id": 17}
+```
+
+Desde 0.8.0 el motor **valida** el registro: debe existir, pertenecer al
+usuario que transiciona (`signer == user`), estar en estado válido y NO
+estar ya vinculado a otro `SeguimientoWorkflow`. Cada violación →
+`PermissionError`.
 
 Detalles en la skill `sinpapel-signing`.
 
@@ -220,8 +262,10 @@ Cada `SeguimientoWorkflow` lleva:
 - **No** llames `transition()` desde dentro de un side effect del propio
   motor: provoca recursión.
 - **No** asumas que `seguimiento_id` se mantiene tras un rollback externo:
-  si tu código wrappea el motor en una transacción y luego revierte,
-  obviamente todo el cambio se pierde.
+  si tu código wrappea el motor en una transacción exterior y luego
+  revierte, todo el cambio se pierde — y además la garantía de que los
+  side effects corren post-commit pasa a ser responsabilidad tuya (el
+  "commit" del motor queda dentro de tu transacción).
 
 ## Patrón "preview → confirm" para UI
 

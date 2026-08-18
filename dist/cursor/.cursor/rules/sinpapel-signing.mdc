@@ -15,10 +15,15 @@ alwaysApply: false
 
 ```
 WorkflowEngine.cambiar_estado()
+   ├── enforce requiere_firma (0.8.0): sin firma_payload → PermissionError
    ├── lee firma_payload (kwarg)
-   ├── get_signature_backend()           ← factory
+   ├── get_signature_backend()           ← factory (respeta SINPAPEL_SIGNATURE_BACKEND)
    └── backend.request_signature(...)    ← retorna RegistroFirma
 ```
+
+Desde 0.8.0 el motor resuelve el backend **vía la factory** — ya no
+instancia `FielBackend` hardcodeado. Cualquier backend configurado (manual,
+fake, custom) recibe el payload de la transición.
 
 ## El Protocol `SignatureBackend`
 
@@ -100,12 +105,33 @@ SINPAPEL_SIGNATURE_BACKEND = "sinpapel.signing.backends.fake.FakeBackend"
   )
   ```
 
+#### Cadena de confianza (0.8.0)
+
+`SINPAPEL_FIEL_TRUSTED_CA_BUNDLE` (path a un PEM, o lista de paths, con
+las ACs del SAT) controla si se verifica la identidad del emisor del
+certificado:
+
+- **Con bundle**: si el cert NO fue emitido por una AC del bundle →
+  `SignatureValidationError`. Si sí → `verification_result="VALIDA"` y
+  `backend_metadata.cadena_verificada=True`.
+- **Sin bundle** (default): la firma íntegra criptográficamente se
+  persiste como **`VALIDA_SIN_CADENA`** — la identidad del emisor NO se
+  verificó. Antes de 0.8.0 estos casos decían `"VALIDA"`.
+
+Para decidir si una firma es válida usa
+`RegistroFirma.RESULTADOS_VALIDOS` (frozenset
+`{"VALIDA", "VALIDA_SIN_CADENA"}`), nunca la comparación con el string
+`"VALIDA"`.
+
 ## Configurar el backend activo
 
 ```python
 # settings/prod.py
 SINPAPEL_SIGNATURE_BACKEND = "sinpapel.signing.backends.fiel.FielBackend"
 SINPAPEL_ALLOW_SERVER_SIGNING = False   # mantenlo False salvo necesidad real
+# 0.8.0 — ACs de confianza del SAT (path PEM o lista de paths).
+# Sin él, las firmas FIEL quedan como VALIDA_SIN_CADENA.
+SINPAPEL_FIEL_TRUSTED_CA_BUNDLE = "/etc/sinpapel/sat-ca-bundle.pem"
 
 # settings/test.py
 SINPAPEL_SIGNATURE_BACKEND = "sinpapel.signing.backends.fake.FakeBackend"
@@ -129,7 +155,18 @@ El motor acepta `firma_payload` en `transition(**kwargs)`. Dos formas:
 instance.transition("APROBADA", user, firma_payload={"registro_firma_id": registro.id})
 ```
 
-**Forma B — el motor invoca a `FielBackend` (Modo A):**
+Desde 0.8.0 el motor **valida** el registro antes de vincularlo, y cada
+violación lanza `PermissionError`:
+
+- el registro debe existir;
+- su firmante debe ser el usuario que ejecuta la transición
+  (`signer == user`);
+- su `verification_result` debe estar en
+  `RegistroFirma.RESULTADOS_VALIDOS`;
+- NO puede estar ya vinculado a otro `SeguimientoWorkflow`
+  (una firma no se reutiliza).
+
+**Forma B — el motor invoca al backend configurado:**
 
 ```python
 instance.transition(
@@ -143,8 +180,20 @@ instance.transition(
 )
 ```
 
+Desde 0.8.0 el motor resuelve el backend con `get_signature_backend()`
+(respeta `SINPAPEL_SIGNATURE_BACKEND`); los kwargs extra del payload
+(todo menos `contenido`) se pasan tal cual al backend.
+
 El `RegistroFirma` queda asociado al `SeguimientoWorkflow` vía OneToOne
 (`firma_registro`).
+
+### Exigir firma en la configuración (0.8.0)
+
+`ConfiguracionTransicion.requiere_firma` (default `False`): con `True`,
+llamar `transition()` sin `firma_payload` lanza `PermissionError` — la
+exigencia vive en la configuración de la transición, no en la buena fe del
+caller. `preview_transition()` incluye la key `firma_requerida: bool` para
+que la UI sepa pedir la firma por adelantado.
 
 ## Contenido canónico para firmar
 
@@ -206,8 +255,9 @@ SINPAPEL_SIGNATURE_BACKEND = "tu_app.signing.MiBackend"
 
 | Excepción | Cuándo |
 |---|---|
-| `SignatureValidationError` | Firma RSA inválida, certificado expirado/inválido, hash no coincide. |
+| `SignatureValidationError` | Firma RSA inválida, certificado expirado/inválido, hash no coincide, o (0.8.0) cert no emitido por una AC de `SINPAPEL_FIEL_TRUSTED_CA_BUNDLE`. |
 | `SignatureBackendNotConfiguredError` | `SINPAPEL_SIGNATURE_BACKEND` apunta a algo no importable. |
+| `PermissionError` (del motor) | Transición con `requiere_firma=True` sin `firma_payload`, o `registro_firma_id` inválido (no existe, firmante distinto, resultado no válido, ya vinculado). |
 
 Mapeo HTTP típico: `SignatureValidationError → 400`,
 `SignatureBackendNotConfiguredError → 500`. `sinpapel-drf` ya lo hace.
@@ -223,8 +273,16 @@ Mapeo HTTP típico: `SignatureValidationError → 400`,
   inmediatamente.
 - **No** uses un `content` no determinista (timestamps, orden variable de
   keys): el verify fallará intermitentemente.
-- **No** modifiques `RegistroFirma` después de creado: la auditoría
-  asume inmutabilidad.
+- **No** modifiques ni borres `RegistroFirma` después de creado: desde
+  0.8.0 el ORM lo enforca — `delete()` lanza `ValueError`. Para revocar,
+  usa `backend.revoke()`. Ojo: `queryset.update()/delete()` masivos NO
+  pasan por estos hooks.
+- **No** compares `verification_result == "VALIDA"`: sin bundle de ACs la
+  firma FIEL íntegra se persiste como `VALIDA_SIN_CADENA`. Usa
+  `RegistroFirma.RESULTADOS_VALIDOS`.
+- **No** despliegues FIEL en producción sin
+  `SINPAPEL_FIEL_TRUSTED_CA_BUNDLE`: sin él la identidad del emisor del
+  certificado no se verifica.
 
 ## Referencia detallada
 

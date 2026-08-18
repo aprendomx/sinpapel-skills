@@ -2,7 +2,7 @@
 name: sinpapel-side-effects
 description: Usar siempre que el usuario quiera ejecutar lógica adicional tras una transición de sinpapel (notificaciones, generación de oficios, integración con sistemas externos, llamadas a otros servicios), genere un documento al entrar a un estado (InstanciaDocumento.archivo_generado, auto_carga), use el decorador register_side_effect, registre handlers en AppConfig.ready(), o pregunte qué pasa si un handler falla, cuándo se ejecuta y cómo afecta a la atomicidad de la transición.
 tested_against:
-  - sinpapel==0.7.0
+  - sinpapel==0.8.2
 applies_to:
   - "**/apps.py"
   - "**/side_effects.py"
@@ -13,14 +13,15 @@ applies_to:
 
 ## Qué es un side effect
 
-Una función que `WorkflowEngine` invoca **después** de persistir el cambio
-de estado y `SeguimientoWorkflow`, **antes** de devolver el resultado.
-Está pensado para tareas asociadas al estado **destino**: generar un
-oficio, enviar email, encolar una tarea Celery, llamar a un servicio
-externo.
+Una función que `WorkflowEngine` invoca **después del commit** de la
+transacción de la transición (estado + `SeguimientoWorkflow` ya
+persistidos), **antes** de devolver el resultado. Está pensado para tareas
+asociadas al estado **destino**: generar un oficio, enviar email, encolar
+una tarea Celery, llamar a un servicio externo.
 
-Implementado en `sinpapel/services/side_effects.py` (decorador
-`register_side_effect` + diccionario interno `SIDE_EFFECTS`).
+Implementado en `sinpapel/services/side_effects.py`: decorador
+`register_side_effect`, registro global `SIDE_EFFECTS`, registro por flujo
+`SIDE_EFFECTS_SCOPED` (0.8.1) y resolutor `resolver_handler`.
 
 ## Registrar un handler
 
@@ -31,24 +32,49 @@ from sinpapel.services.side_effects import register_side_effect
 @register_side_effect("APROBADA")
 def on_aprobada(instance, user, **kwargs):
     """Handler que se invoca al entrar al estado APROBADA."""
-    # Para datos de dominio usa metadatos de la instancia (sinpapel-metadata)
-    # o los kwargs de la transición (comentarios / condiciones).
-    comentarios = kwargs.get("comentarios", "")
-    oficio = generar_oficio(instance, comentarios)
+    # Para datos de dominio usa metadatos de la instancia (sinpapel-metadata);
+    # los comentarios de la transición ya están persistidos en el
+    # SeguimientoWorkflow más reciente de la instancia.
+    oficio = generar_oficio(instance)
     enviar_email_notificacion(instance, oficio)
     return {"oficio_id": oficio.id}   # se incluye en el dict de transition()
 ```
+
+### Scoping por flujo (0.8.1)
+
+Dos flujos con un estado homónimo pueden tener handlers distintos:
+
+```python
+@register_side_effect("DISPERSADA")                      # global: cualquier flujo
+def _global(instance, user, **kwargs): ...
+
+@register_side_effect("DISPERSADA", workflow_key="pyme") # solo el flujo "pyme"
+def _pyme(instance, user, **kwargs): ...
+```
+
+En el dispatch, el handler **scoped tiene precedencia** sobre el global
+homónimo. El registro global sigue funcionando igual (compat). El resolutor
+público es `resolver_handler(estado_nombre, workflow_key)`: scoped primero,
+global después; los scoped viven en el dict
+`SIDE_EFFECTS_SCOPED[(workflow_key, estado_nombre)]`.
 
 **Reglas:**
 
 - La clave es el `nombre` del estado **destino**, exactamente como está en
   `Estado.nombre` (case-sensitive).
-- Solo se permite **un** handler por estado. Registrar dos veces sobrescribe.
-- La firma es `(instance, user, **kwargs)`. `kwargs` incluye lo que se
-  pasó a `transition()` (`comentarios`, `condiciones`, `ip_address`, etc.).
-  *(sinpapel 0.7.0 eliminó `monto_aprobado`; usa metadatos para datos de dominio.)*
+- Solo se permite **un** handler global por estado y **uno** scoped por
+  `(workflow_key, estado)`. Registrar dos veces sobrescribe.
+- La firma es `(instance, user, **kwargs)`. Ojo (verificado en 0.8.1): al
+  despachar desde `transition()`, el motor actualmente **no reenvía** los
+  kwargs de la transición (`comentarios`, `condiciones`, `ip_address`) al
+  handler; si los necesitas, léelos del `SeguimientoWorkflow` más reciente
+  de la instancia. (`ejecutar_side_effects` sí propaga `**kwargs` cuando se
+  invoca directo.) *(sinpapel 0.7.0 eliminó `monto_aprobado`; usa metadatos
+  para datos de dominio.)*
 - Si retornas un `dict`, sus keys se fusionan en el `dict` que devuelve
   `transition()`. Si no retornas nada, queda `{}`.
+- El handler debe ser **idempotente** (o tolerar reintentos externos):
+  corre fuera de la transacción del motor, ya sin posibilidad de rollback.
 
 ## Registro de los handlers (cuándo se importan)
 
@@ -73,38 +99,50 @@ ejecuta sin él (silenciosamente).
 
 ## Comportamiento ante errores
 
-`WorkflowEngine` corre la transición en `@transaction.atomic`. Si el
-handler lanza una excepción:
+Si el handler lanza una excepción:
 
-- El error se **logea** pero **no se re-lanza**.
-- La transición ya commiteó atómicamente (estado + `SeguimientoWorkflow`).
+- El error se **logea** pero **no se re-lanza** (ADR-004).
+- La transición ya commiteó atómicamente (estado + `SeguimientoWorkflow`)
+  **antes** de invocar el handler.
 - El `dict` devuelto incluye `{"error": True, "estado": "<destino>"}` en
   lugar de los datos del handler.
 
 **Implicación:** un side effect que falla **no** revierte el cambio de
-estado. Si necesitas atomicidad estricta entre estado y efecto, ejecuta
-la lógica **antes** de transicionar (en un predicado o en la vista) y
-**no** la pongas como side effect.
+estado — no "porque el motor atrapa la excepción dentro de la transacción",
+sino porque la transición **ya persistió** cuando el handler corre. Si
+necesitas atomicidad estricta entre estado y efecto, ejecuta la lógica
+**antes** de transicionar (en un predicado o en la vista) y **no** la
+pongas como side effect.
 
-## Atomicidad: cuándo el efecto sí cuenta
+## Atomicidad: el handler corre POST-commit
+
+Desde sinpapel 0.7.1 (ADR-004 corregido), los side effects corren
+**después** de que la transacción del motor commiteó — antes corrían
+dentro de ella:
 
 ```
 ┌── transaction.atomic ──────────────────────────────┐
+│  0. SELECT ... FOR UPDATE + revalidación           │
 │  1. validate (grupos, predicados, requisitos)      │
-│  2. instance.estado = nuevo; instance.save()       │
+│  2. RegistroFirma (si firma_payload)               │
 │  3. SeguimientoWorkflow.objects.create(...)        │
-│  4. RegistroFirma (si firma_payload)               │
-│  5. side_effect(instance, user, **kwargs) ← AQUÍ   │
-└────────────────────────────────────────────────────┘
+│  4. instance.estado = nuevo; instance.save()       │
+└────────────── COMMIT ──────────────────────────────┘
+   5. side_effect(instance, user, **kwargs) ← AQUÍ (post-commit)
 ```
 
-El handler corre **dentro** de la misma transacción, pero el motor captura
-sus excepciones. Si quieres que el handler **sí** revierta la transacción,
-lanza `transaction.set_rollback(True)` manualmente y deja que la excepción
-fluya (no recomendado: rompe el contrato del motor).
+Ventaja: un handler fallido nunca puede dejar efectos externos de una
+transición que hizo rollback. Contrapartida: el handler **no puede**
+revertir la transición de ninguna forma (`transaction.set_rollback` ya no
+aplica: no hay transacción del motor abierta).
 
-Mejor: implementa la lógica crítica como **predicado** (bloquea antes) y
-deja los side effects para lo que es no-bloqueante (notificar, encolar).
+Excepción: si el **caller** envuelve `transition()` en su propia
+transacción exterior, el "commit" del motor queda dentro de ella y la
+garantía post-commit pasa a ser responsabilidad del caller.
+
+La lógica crítica va como **predicado** (bloquea antes); deja los side
+effects para lo no-bloqueante (notificar, encolar). Y como el handler puede
+reintentar tras un fallo parcial, hazlo **idempotente**.
 
 ## Ejemplos típicos
 
@@ -218,16 +256,23 @@ invocarían. Útil para advertir al usuario antes de confirmar.
 ## Anti-patrones
 
 - **No** levantes excepciones para abortar la transición desde un side
-  effect: el motor las atrapa y la transición queda commiteada.
+  effect: la transición ya commiteó cuando el handler corre; el motor solo
+  logea la excepción.
 - **No** llames `instance.transition(...)` recursivamente desde un side
   effect: provoca recursión.
 - **No** registres handlers en el `__init__.py` de la app: usa
   `AppConfig.ready()`. El orden de imports no está garantizado fuera de
   ahí.
-- **No** asumas que el handler corre fuera de la transacción: corre
-  dentro. Si tu lógica hace I/O lento (HTTP, email), considera encolar y
-  retornar rápido.
-- **No** registres dos handlers para el mismo estado: el último gana.
+- **No** asumas que el handler corre dentro de la transacción: desde 0.7.1
+  corre **después** del commit. Aun así, el caller espera la respuesta de
+  `transition()`: si tu lógica hace I/O lento (HTTP, email), considera
+  encolar y retornar rápido.
+- **No** registres dos handlers para el mismo estado en el mismo scope
+  (global o mismo `workflow_key`): el último gana. Un scoped y un global
+  homónimos sí conviven — gana el scoped para su flujo.
+- **No** escribas handlers no idempotentes: la transición persistió aunque
+  el handler falle, así que el reintento llega por fuera (reejecución
+  manual, cola, etc.).
 - **No** uses el side effect para validar: usa **predicados**
   (`sinpapel-predicates`). Los predicados sí bloquean.
 - **No** olvides el `noqa: F401` en el import dentro de `ready()`: los
@@ -237,8 +282,12 @@ invocarían. Útil para advertir al usuario antes de confirmar.
 ## Verificar que están registrados
 
 ```python
-from sinpapel.services.side_effects import SIDE_EFFECTS
-print(list(SIDE_EFFECTS.keys()))   # ['APROBADA', 'EN_DISPERSION', ...]
+from sinpapel.services.side_effects import (
+    SIDE_EFFECTS, SIDE_EFFECTS_SCOPED, resolver_handler,
+)
+print(list(SIDE_EFFECTS.keys()))          # ['APROBADA', 'EN_DISPERSION', ...]
+print(list(SIDE_EFFECTS_SCOPED.keys()))   # [('pyme', 'DISPERSADA'), ...]
+resolver_handler("DISPERSADA", "pyme")    # el handler que aplicaría (o None)
 ```
 
 ## Siguiente paso

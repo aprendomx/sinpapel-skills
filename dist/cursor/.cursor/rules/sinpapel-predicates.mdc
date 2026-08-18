@@ -8,8 +8,10 @@ alwaysApply: false
 ## Qué son
 
 Reglas evaluadas **antes** de cambiar de estado. Si fallan, `transition()`
-lanza `ValueError` (mapeable a 400). Se modelan como filas en
-`sinpapel.models.CondicionTransicion`, una por arista de transición.
+lanza `PermissionError` con el `mensaje_error` de la condición (mapeable a
+403, como cualquier bloqueo de `puede_cambiar_estado`). Se modelan como
+filas en `sinpapel.models.CondicionTransicion`, una por arista de
+transición.
 
 Implementación: `sinpapel/services/predicate_engine.py`. El modelo está
 en `sinpapel/models/predicates.py` (re-exportado en `sinpapel.models`).
@@ -29,16 +31,22 @@ Con `HistoricalRecords` (auditable).
 
 ## Los 3 backends de `PredicateEngine`
 
+Desde 0.8.0 cada backend **valida su `configuracion`**: `python_path`
+exige `path` (str), `json_logic` exige `rule`, `django_orm` exige `lookup`
+(dict no vacío). Una config que no cumple ya no revienta la transición con
+un 500 — ver "Config inválida" abajo.
+
 ### `python_path`
 
-Apunta a un callable que devuelve `bool` (o levanta `ValueError`).
+Apunta a un callable que recibe `(instance, user)` y devuelve `bool` o
+`tuple[bool, str]` (el `str` es un mensaje de error).
 
 ```python
 # configuracion JSONField:
 {"path": "tu_app.predicates.monto_minimo_aprobado"}
 
 # tu_app/predicates.py
-def monto_minimo_aprobado(instance, user, target_state, **context):
+def monto_minimo_aprobado(instance, user):
     return instance.monto >= 100_000
 ```
 
@@ -65,32 +73,31 @@ a funciones del host). Implementado en `sinpapel/json_logic.py`.
 }
 ```
 
-Variables disponibles:
+Variables disponibles (contexto que construye el motor):
 
-- `instance.<field>` — campos del modelo (incluye `estado.nombre`).
-- `meta.<key>` — metadatos capturados (`MetadatosCapturables`).
-- `target_state` — el nombre del estado destino.
+- `instance.pk` — ID de la instancia.
+- `meta.<key>` — metadatos capturados (`MetadatosCapturables`, vía
+  `instance.meta.to_dict()`).
 - `user.id`, `user.username` — usuario que ejecuta.
+
+Para condicionar sobre otros campos del modelo, usa `django_orm` (lookup
+ORM) o expón el dato como metadato.
 
 ### `django_orm`
 
-Ejecuta un `.exists()` sobre un QuerySet declarativo.
+Ejecuta un `.exists()` sobre la **propia instancia**: filtra
+`type(instance).objects.filter(pk=instance.pk, **lookup)`.
 
 ```python
 # configuracion JSONField:
 {
-  "model": "tu_app.Documento",
-  "filter": {
-    "solicitud_id": "{instance.pk}",
-    "tipo__nombre": "RFC",
-    "verificado": true
-  },
-  "expect": "exists"           # o "not_exists"
+  "lookup": {"monto__gte": 100000}
 }
 ```
 
-El placeholder `{instance.pk}` se sustituye en runtime con el campo
-correspondiente.
+`lookup` debe ser un dict **no vacío** de lookups ORM válidos sobre el
+modelo de la instancia (0.8.0 lo valida). Pasa si el queryset filtrado
+`.exists()`.
 
 ## Cómo se invocan
 
@@ -98,9 +105,26 @@ El motor las evalúa automáticamente en `puede_cambiar_estado()` y antes
 de mutar el estado en `cambiar_estado()`. Si una falla:
 
 - `preview_transition()` retorna `permitido=False`,
-  `predicados_fallidos=[{...}]`, y `razones_bloqueo`.
-- `transition()` lanza `ValueError(predicado.mensaje_error)` y dispara el
-  signal `predicate_failed`.
+  `predicados_fallidos=[{"condicion_id", "tipo", "mensaje"}]`, y
+  `razones_bloqueo`.
+- `transition()` lanza `PermissionError` (con el mensaje del primer
+  bloqueo) y se dispara el signal `predicate_failed`.
+
+El `mensaje` mostrado es el `mensaje_error` de la condición; si está
+vacío, el mensaje que retornó el backend.
+
+## Config inválida = bloqueo controlado (0.8.0)
+
+Una `CondicionTransicion` mal configurada — `path` fuera de la whitelist,
+key faltante en `configuracion` (`path` / `rule` / `lookup`), backend
+desconocido en `tipo` — ya **no** produce una excepción sin manejar (500).
+El motor la trata como **condición fallida**: la transición queda
+bloqueada, el detalle se logea (`logger.exception`) y el usuario ve el
+`mensaje_error` de la condición (o, si está vacío, un mensaje genérico de
+"condición mal configurada; contacta al administrador del flujo").
+
+Ojo: el bloqueo controlado protege al usuario final, pero el flujo sigue
+roto — revisa los logs y corrige la configuración.
 
 ## Sembrar predicados
 
@@ -121,7 +145,7 @@ def seed(apps, schema_editor):
     Cond.objects.create(
         transicion=transicion,
         tipo="json_logic",
-        configuracion={"rule": {">=": [{"var": "instance.monto"}, 100000]}},
+        configuracion={"rule": {">=": [{"var": "meta.monto_solicitado"}, 100000]}},
         mensaje_error="El monto debe ser mayor o igual a $100,000",
         orden=1,
         activo=True,
@@ -143,8 +167,9 @@ def on_predicate_failed(sender, target, condicion, user, target_state, **kwargs)
 ## Anti-patrones
 
 - **No** uses `python_path` sin configurar `SINPAPEL_PREDICATE_MODULES`:
-  no se cargará nada y todas las transiciones quedarán bloqueadas (o se
-  caerán con error de configuración, según versión).
+  ninguna condición pasará. Desde 0.8.0 eso es un bloqueo controlado con
+  el `mensaje_error` de la condición (ya no un 500), pero las transiciones
+  con esa condición siguen bloqueadas hasta configurar la whitelist.
 - **No** importes `os`, `subprocess`, lectura de archivos u operaciones
   pesadas dentro de un predicado: corre dentro de la transacción y se
   evalúa en cada `transition()` y cada `preview_transition()`.

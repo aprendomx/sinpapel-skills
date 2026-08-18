@@ -3,7 +3,7 @@ name: sinpapel-vue-store
 description: Usar siempre que el usuario use el store Pinia useSeguimientoStore de sinpapel-vue o sus composables useTransition/useSpLabels, gestione loading granular (estados/historial/metadatos/transicion/documentos/requisitos), cancele requests con cancel(), cargue o suba documentos (cargarDocumentos/cargarRequisitos/subirDocumento/eliminarDocumento), construya el payload de transición/firma (buildPayload/buildSignaturePayload), valide el formulario de transición, o normalice el historial paginado del backend.
 tested_against:
   - sinpapel-vue@0.3.0
-  - sinpapel-drf==0.4.0
+  - sinpapel-drf==0.4.3
 applies_to:
   - "**/sinpapel-vue/**"
   - "**/stores/useSeguimientoStore.js"
