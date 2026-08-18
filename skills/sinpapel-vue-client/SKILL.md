@@ -3,7 +3,7 @@ name: sinpapel-vue-client
 description: Usar siempre que el usuario cree o use el cliente REST JS de sinpapel-vue (createSinpapelClient), llame uno de sus 11 métodos (availableTransitions, history, previewTransition, getMetadatos, patchMetadatos, slaStatus, listDocumentos, uploadDocumento, deleteDocumento, requisitos, transition), mapee llamadas a los endpoints de sinpapel-drf, cancele requests con AbortController/signal, o use buildTransitionRequest / buildDocumentoUpload para codificar el payload (JSON vs multipart FIEL / multipart de documentos).
 tested_against:
   - sinpapel-vue@0.4.0
-  - sinpapel-drf==0.4.4
+  - sinpapel-drf==0.4.5
 applies_to:
   - "**/sinpapel-vue/**"
   - "**/client/sinpapelClient.js"

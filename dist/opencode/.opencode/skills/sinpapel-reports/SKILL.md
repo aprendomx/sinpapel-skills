@@ -27,7 +27,7 @@ opcionalmente empaquetado en ZIP.
 ## Instalación
 
 ```bash
-pip install "sinpapel-reports~=0.2.2"
+pip install "sinpapel-reports~=0.2.3"
 # Con capa REST:
 pip install "sinpapel-reports[drf] @ git+...@v0.2.0"
 ```

@@ -3,7 +3,7 @@ name: sinpapel-vue-setup
 description: Usar siempre que el usuario instale o integre la librería @aprendomx/sinpapel-vue (widgets Vue 3 de seguimiento de flujos), configure sus peer deps (vue/pinia/quasar), importe @aprendomx/sinpapel-vue/style.css, monte SeguimientoPanel, sobrescriba la tematización --sp-*, cambie el locale (es/en), o pregunte qué es la librería frente a sinpapel-designer. Cubre que CONSUME sinpapel-drf y NO es un backend.
 tested_against:
   - sinpapel-vue@0.4.0
-  - sinpapel-drf==0.4.4
+  - sinpapel-drf==0.4.5
 applies_to:
   - "**/sinpapel-vue/**"
   - "**/quasar.config.*"

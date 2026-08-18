@@ -8,7 +8,7 @@ alwaysApply: false
 ## Instalación
 
 ```bash
-pip install "sinpapel-drf~=0.4.3"
+pip install "sinpapel-drf~=0.4.5"
 ```
 
 `sinpapel-drf` requiere `sinpapel~=0.8.0` y `djangorestframework>=3.14`.

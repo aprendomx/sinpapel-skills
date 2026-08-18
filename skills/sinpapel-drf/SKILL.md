@@ -2,7 +2,7 @@
 name: sinpapel-drf
 description: Usar siempre que el usuario exponga flujos sinpapel por API REST con Django REST Framework, instale sinpapel-drf, use expose_endpoints=True / endpoint_slug en @workflow_enabled, monte SinpapelRouter, llame los endpoints available-transitions / transition / history / preview-transition / metadatos / sla-status / documentos / requisitos, exporte / importe flujos por HTTP, o configure permisos sobre transiciones. Cubre la carga de documentos (InstanciaDocumento), el dispatch polimórfico de firma y el mapeo de errores.
 tested_against:
-  - sinpapel-drf==0.4.4
+  - sinpapel-drf==0.4.5
   - sinpapel==0.8.2
 applies_to:
   - "**/urls.py"
@@ -15,7 +15,7 @@ applies_to:
 ## Instalación
 
 ```bash
-pip install "sinpapel-drf~=0.4.3"
+pip install "sinpapel-drf~=0.4.5"
 ```
 
 `sinpapel-drf` requiere `sinpapel~=0.8.0` y `djangorestframework>=3.14`.

@@ -3,7 +3,7 @@ name: sinpapel-vue-components
 description: Usar siempre que el usuario use o parametrice los componentes Vue de sinpapel-vue (SeguimientoPanel, StateBadge, HistoryTimeline, TransitionDialog, PreviewTransitionPanel, MetadatosForm, SlaStatusPanel, RequisitosPanel, DocumentosPanel), sus props/emits, la composición de pestañas del panel, el remount con :key, la accesibilidad del diálogo, la UI de cumplimiento/carga documental, o la UI de firma polimórfica (FIEL client/server-side, manual, fake) en TransitionDialog.
 tested_against:
   - sinpapel-vue@0.4.0
-  - sinpapel-drf==0.4.4
+  - sinpapel-drf==0.4.5
 applies_to:
   - "**/sinpapel-vue/**"
   - "**/*.vue"
