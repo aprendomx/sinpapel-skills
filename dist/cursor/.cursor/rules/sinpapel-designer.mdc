@@ -93,6 +93,7 @@ Scripts:
         "estado_origen": "CAPTURA",
         "estado_destino": "EN_REVISION",
         "grupos_permitidos": ["operadores"],
+        "requiere_firma": false,
         "condiciones": [...]
       }
     ],
@@ -130,7 +131,7 @@ dedicada con scope acotado para esta SPA.
 2. Define nombre.
 3. Navega al canvas.
 4. Arrastra estados desde el panel lateral, conéctalos.
-5. Edita transiciones (grupos, condiciones, requisitos) en el panel derecho.
+5. Edita transiciones (grupos, firma electrónica requerida, condiciones, requisitos) en el panel derecho. El toggle "Firma electrónica" mapea a `ConfiguracionTransicion.requiere_firma` (sinpapel 0.8.x) y hace round-trip en el JSON v0.2 (JSONs viejos sin la key importan con false).
 6. Ctrl+S autosave; "Exportar" descarga el JSON.
 
 ### Importar JSON de un backend
