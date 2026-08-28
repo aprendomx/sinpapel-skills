@@ -83,7 +83,7 @@ Ambas modas persisten `RegistroFirma` con el mismo schema. `verify()` del
 backend re-valida cualquier `RegistroFirma`:
 
 ```python
-from sinpapel.signing import get_signature_backend
+from sinpapel.signing.factory import get_signature_backend
 
 backend = get_signature_backend()
 result = backend.verify(registro)

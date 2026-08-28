@@ -2,7 +2,7 @@
 name: sinpapel-predicates
 description: Usar siempre que el usuario defina reglas de negocio que bloqueen una transición (montos, fechas, validaciones cruzadas), use CondicionTransicion, PredicateEngine, los backends python_path / json_logic / django_orm, o vea el signal predicate_failed. Cubre cómo configurar SINPAPEL_PREDICATE_MODULES como whitelist de seguridad y el JSON Logic restringido del framework.
 tested_against:
-  - sinpapel==0.8.2
+  - sinpapel==0.8.3
 applies_to:
   - "**/predicates.py"
   - "**/migrations/*seed*predicates*.py"
@@ -28,11 +28,14 @@ en `sinpapel/models/predicates.py` (re-exportado en `sinpapel.models`).
 | `transicion` | `FK(ConfiguracionTransicion)` | A qué arista pertenece. |
 | `tipo` | `CharField` | Uno de: `"python_path"`, `"json_logic"`, `"django_orm"`. |
 | `configuracion` | `JSONField` | Datos específicos del backend (ver abajo). |
-| `mensaje_error` | `TextField` | Lo que ve el usuario si falla. |
+| `mensaje_error` | `CharField(250)` | Lo que ve el usuario si falla. |
 | `orden` | `IntegerField` | Orden de evaluación (asc). |
 | `activo` | `BooleanField` | Si `False`, no se evalúa. |
 
-Con `HistoricalRecords` (auditable).
+**Sin `HistoricalRecords`**: editar una condición no deja rastro histórico.
+Si necesitas auditar cambios de reglas, suscríbete al evento
+`workflow.predicate.configured` de `sinpapel-webhooks` o registra el cambio
+desde tu propia capa.
 
 ## Los 3 backends de `PredicateEngine`
 

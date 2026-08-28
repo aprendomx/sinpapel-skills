@@ -12,6 +12,10 @@ alwaysApply: false
 - Una base de datos relacional (PostgreSQL recomendado en producción;
   SQLite vale para dev)
 
+El pin de Django no tiene techo (`Django>=5.0`): un `pip install` sin
+restricción propia puede traerte un major nuevo sin avisar. Si tu proyecto
+necesita una serie concreta, píneala tú (`Django>=5.2,<6.0`).
+
 ## Instalación
 
 `sinpapel` se publica en **PyPI**. Contrato pre-1.0: los minors PUEDEN
@@ -40,6 +44,38 @@ Dependencias transitivas que se instalan automáticamente:
 
 **No instales `trazable` por separado**: el mixin está inlined en
 `sinpapel/mixins.py`.
+
+## Usuario custom (`AUTH_USER_MODEL`)
+
+**Soportado desde sinpapel 0.8.3.** Los FKs a usuario del framework
+(`VersionFlujo.creado_por`, `SeguimientoWorkflow.usuario_accion`,
+`RegistroFirma.signer`, y `WebhookSubscription.created_by` en
+`sinpapel-webhooks` 0.2.4) se declaran con `settings.AUTH_USER_MODEL`.
+
+```python
+# settings.py
+AUTH_USER_MODEL = "cuentas.Usuario"
+```
+
+**En 0.8.2 y anteriores esto NO funcionaba.** Esas versiones declaraban los
+FKs con el literal `"auth.User"`; con un usuario custom, Django aborta el
+system check y ni `manage.py check` ni `migrate` corren:
+
+```
+ERRORS:
+sinpapel.SeguimientoWorkflow.usuario_accion: (fields.E301) Field defines a
+relation with the model 'auth.User', which has been swapped out.
+  HINT: Update the relation to point at 'settings.AUTH_USER_MODEL'.
+```
+
+Si ves `fields.E301` mencionando `auth.User` y un modelo de `sinpapel`,
+actualiza a `sinpapel>=0.8.3` (y a `sinpapel-webhooks>=0.2.4` si lo usas).
+No hay migración asociada: las migraciones ya usaban
+`settings.AUTH_USER_MODEL`, el desajuste vivía solo en las definiciones de
+modelo, así que el upgrade no toca el esquema.
+
+Como siempre en Django, define `AUTH_USER_MODEL` **antes** del primer
+`migrate`: cambiarlo con migraciones ya aplicadas es costoso.
 
 ## INSTALLED_APPS — orden requerido
 
@@ -144,7 +180,7 @@ Aplica:
 # Django shell: python manage.py shell
 from sinpapel import workflow_enabled  # noqa
 from sinpapel.registry import WorkflowRegistry
-from sinpapel.signing import get_signature_backend
+from sinpapel.signing.factory import get_signature_backend
 
 print(WorkflowRegistry.list_keys())     # ['solicitud', ...] tras decorar modelos
 print(get_signature_backend().name)     # 'manual' | 'fiel' | 'fake'
@@ -175,6 +211,7 @@ print(get_signature_backend().name)     # 'manual' | 'fiel' | 'fake'
 | `LookupError: No installed app with label 'simple_history'` al migrar | `simple_history` falta o va después de `sinpapel`. | Añadirlo y ponerlo **antes** de `sinpapel`. |
 | `WorkflowConfigurationError: state_field 'estado' not on model` | Decorador `@workflow_enabled(state_field=...)` apunta a un campo inexistente. | Corregir el nombre del campo FK a `sinpapel.Estado`. |
 | Falla `cryptography` al instalar | Falta toolchain de compilación. | `pip install --upgrade pip wheel` y/o instalar headers de OpenSSL. |
+| `fields.E301 … relation with the model 'auth.User', which has been swapped out` | `sinpapel<0.8.3` (o `sinpapel-webhooks<0.2.4`) con `AUTH_USER_MODEL` custom. | Actualizar a `sinpapel>=0.8.3` / `sinpapel-webhooks>=0.2.4`. Sin migración. |
 
 ## Siguiente paso
 

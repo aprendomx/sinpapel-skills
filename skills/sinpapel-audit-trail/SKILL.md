@@ -2,7 +2,7 @@
 name: sinpapel-audit-trail
 description: Usar siempre que el usuario configure auditoría, use Trazable, HistoricalRecords o django-simple-history, consulte el historial de un modelo o de SeguimientoWorkflow, mencione HistoryRequestMiddleware o history_user nulo en jobs/background, o pregunte cómo persistir quién y cuándo cambió qué en sinpapel.
 tested_against:
-  - sinpapel==0.8.2
+  - sinpapel==0.8.3
 applies_to:
   - "**/models.py"
   - "**/models/*.py"
@@ -75,7 +75,10 @@ historia = (
 
 `SeguimientoWorkflow` es **append-only a nivel ORM** desde 0.8.0: el
 `save()` de un registro existente (update) y el `delete()` lanzan
-`ValueError`. `RegistroFirma.delete()` también lanza — para revocar una
+`ValueError`. `RegistroFirma` solo override `delete()` (que también lanza);
+su `save()` **no** está protegido, así que un UPDATE sobre una firma
+existente pasa silenciosamente — trátalo como convención, no como
+garantía. Para revocar una
 firma usa `backend.revoke()`, no el borrado. Si necesitas anular una
 transición, ejecuta otra transición de "reversa".
 
@@ -85,15 +88,19 @@ filas. No los uses sobre estas tablas.
 
 ## `HistoricalRecords` (simple-history)
 
-Modelos con historia en sinpapel (revisa el código por la lista actual):
+Modelos con historia en sinpapel (verificado contra 0.8.3):
 
 - `VersionFlujo`
 - `ConfiguracionTransicion` (incl. `grupos_permitidos` M2M)
 - `RequisitoEstadoDocumento`
-- `CondicionTransicion`
-- `SLAConfiguracion`
 - `RegistroFirma`
 - `InstanciaDocumento`
+
+**Sin historia** (no declaran `HistoricalRecords`): `CondicionTransicion`,
+`SLAConfiguracion`, `Estado`, `Etapa`, `TipoDocumento`, `Documento`. Editar
+un predicado o un SLA **no** deja rastro en una tabla `Historical*`; si
+necesitas auditar esos cambios, hazlo desde tu propia capa (admin log,
+webhook `workflow.predicate.configured` / `sla.configured`).
 
 Para auditar tus propios modelos, agrega:
 
@@ -170,9 +177,10 @@ está expuesto por defecto en `sinpapel-drf` v0.4.0).
   dispara los signals de simple-history. Si tienes que hacerlo, registra
   manualmente la entrada histórica.
 - **No** edites filas de `SeguimientoWorkflow` ni `Historical*`: rompe
-  la inmutabilidad. Desde 0.8.0 el ORM lo impide (`ValueError` en `save()`
-  de update y en `delete()`), pero `queryset.update()/delete()` masivos
-  se saltan esos hooks — evítalos.
+  la inmutabilidad. En `SeguimientoWorkflow` el ORM lo impide desde 0.8.0
+  (`ValueError` en `save()` de update y en `delete()`). En `RegistroFirma`
+  solo `delete()` está protegido. Y los `queryset.update()/delete()`
+  masivos se saltan ambos hooks — evítalos.
 - **No** borres un `RegistroFirma` para "deshacer" una firma:
   `RegistroFirma.delete()` lanza `ValueError`; revoca vía
   `backend.revoke()`.

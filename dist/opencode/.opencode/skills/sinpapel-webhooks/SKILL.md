@@ -2,8 +2,8 @@
 name: sinpapel-webhooks
 description: Usar siempre que el usuario emita o consuma webhooks con sinpapel-webhooks; configure WebhookSubscription / WebhookEvent / WebhookDelivery / InboundWebhookEvent; use el decorador @webhook_receiver, los backends de entrega inline / outbox / celery, HMAC-SHA256 con X-Sinpapel-Signature, política de reintentos con backoff y dead letter, idempotencia inbound, o el Admin REST API. Cubre el cron del worker y la verificación de firmas desde cliente.
 tested_against:
-  - sinpapel-webhooks==0.2.3
-  - sinpapel==0.8.2
+  - sinpapel-webhooks==0.2.4
+  - sinpapel==0.8.3
 applies_to:
   - "**/webhooks.py"
   - "**/receivers/**/*.py"

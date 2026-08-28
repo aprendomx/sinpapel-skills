@@ -3,7 +3,7 @@ name: sinpapel-reports
 description: Usar siempre que el usuario genere documentos por plantilla con sinpapel-reports (PDF overlay con ReportLab/PyPDF2 o DOCX con docxtpl); implemente un ReportDataSource / CampoReporte / register_data_source en reports.py; use ReportEngine.generar / generar_paquete / register_renderer; edite Documento.configuracion_overlay (campos_solicitud, posiciones, posicion_base, fuente); monte los endpoints DRF field-catalog / overlay-config / generate / download; configure SINPAPEL_REPORTS_DEFAULT_DATA_SOURCE o SINPAPEL_REPORTS_PERMISSION_CLASSES; o vea DataSourceNotFoundError / UnsupportedTemplateError.
 tested_against:
   - sinpapel-reports==0.2.3
-  - sinpapel==0.8.2
+  - sinpapel==0.8.3
 applies_to:
   - "**/reports.py"
 ---

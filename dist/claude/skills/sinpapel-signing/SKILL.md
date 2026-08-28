@@ -2,7 +2,7 @@
 name: sinpapel-signing
 description: Usar siempre que el usuario implemente firma electrónica con sinpapel, configure SINPAPEL_SIGNATURE_BACKEND, use FielBackend (FIEL/SAT México) en modo client-side o server-side, ManualBackend o FakeBackend, escriba un backend custom que implemente el Protocol SignatureBackend, persista RegistroFirma, llame get_signature_backend(), pase firma_payload a transition(), o vea SignatureValidationError / SignatureBackendNotConfiguredError. Cubre los dos modos del FIEL y el contrato del Port/Adapter.
 tested_against:
-  - sinpapel==0.8.2
+  - sinpapel==0.8.3
 applies_to:
   - "**/signing/**/*.py"
   - "**/backends/*.py"
@@ -278,8 +278,10 @@ Mapeo HTTP típico: `SignatureValidationError → 400`,
   inmediatamente.
 - **No** uses un `content` no determinista (timestamps, orden variable de
   keys): el verify fallará intermitentemente.
-- **No** modifiques ni borres `RegistroFirma` después de creado: desde
-  0.8.0 el ORM lo enforca — `delete()` lanza `ValueError`. Para revocar,
+- **No** modifiques ni borres `RegistroFirma` después de creado: el ORM
+  enforca el borrado — `delete()` lanza `ValueError` — pero **no** el
+  update: `save()` no está override, así que la inmutabilidad del payload
+  es convención tuya. Para revocar,
   usa `backend.revoke()`. Ojo: `queryset.update()/delete()` masivos NO
   pasan por estos hooks.
 - **No** compares `verification_result == "VALIDA"`: sin bundle de ACs la

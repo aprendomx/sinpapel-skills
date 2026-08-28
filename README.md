@@ -10,8 +10,8 @@ mejores prácticas para usarlo, de modo que cualquier agente de IA o
 desarrollador pueda construir un sistema de trámites sobre sinpapel sin
 releer todo el código fuente.
 
-**Versiones objetivo:** `sinpapel==0.8.2`, `sinpapel-drf==0.4.5`,
-`sinpapel-webhooks==0.2.3`, `sinpapel-reports==0.2.3`,
+**Versiones objetivo:** `sinpapel==0.8.3`, `sinpapel-drf==0.4.5`,
+`sinpapel-webhooks==0.2.4`, `sinpapel-reports==0.2.3`,
 `sinpapel-designer@v0.1.0`, `sinpapel-vue@0.4.0`.
 
 ## Arquitectura: una sola fuente de verdad
@@ -158,8 +158,11 @@ como índice cross-tool legible por múltiples agentes.
 ## Limitaciones y notas
 
 - `sinpapel` está en **0.x (beta)**: la API es estable pero pueden ocurrir
-  breaking changes hasta 1.0. Fija `~=0.8.2` (o el tag/commit que uses) en
+  breaking changes hasta 1.0. Fija `~=0.8.3` (o el tag/commit que uses) en
   tus dependencias.
+- **Usuario custom:** `AUTH_USER_MODEL` distinto de `auth.User` requiere
+  `sinpapel>=0.8.3` y `sinpapel-webhooks>=0.2.4`. En versiones previas el
+  system check de Django falla con `fields.E301`.
 - `i18n` del framework está parcialmente en español (verbose_names, mensajes
   de error). Las skills están en español por consistencia.
 - `WorkflowService` **no existe**: el motor real es `WorkflowEngine` en

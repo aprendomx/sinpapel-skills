@@ -2,7 +2,7 @@
 name: sinpapel-transitions
 description: Usar siempre que el usuario ejecute una transición de estado, llame transition() / available_transitions() / can_transition_to() / preview_transition(), maneje PermissionError o ValueError al transicionar, o use WorkflowEngine directamente. Cubre payload de firma (firma_payload), kwargs (comentarios, condiciones, ip_address) y la consulta del audit log SeguimientoWorkflow.
 tested_against:
-  - sinpapel==0.8.2
+  - sinpapel==0.8.3
 applies_to:
   - "**/views.py"
   - "**/services/**/*.py"

@@ -2,9 +2,9 @@
 name: sinpapel-testing
 description: Usar siempre que el usuario escriba tests de un proyecto que use sinpapel, configure pytest / pytest-django, use FakeBackend en lugar de FielBackend real, genere un keypair RSA en fixtures, limpie el cache del framework entre tests, use WorkflowRegistry.unregister, mockee transiciones o verifique history_user en tests sin request. Cubre los settings de test y los patrones de aislamiento.
 tested_against:
-  - sinpapel==0.8.2
+  - sinpapel==0.8.3
   - sinpapel-drf==0.4.5
-  - sinpapel-webhooks==0.2.3
+  - sinpapel-webhooks==0.2.4
 applies_to:
   - "**/tests/**/*.py"
   - "**/conftest.py"
@@ -193,7 +193,7 @@ la GFK `target`; 0 si no hay ninguno.
 
 ```python
 def test_transition_con_firma_fake(flujo_basico, django_user_model):
-    from sinpapel.signing import get_signature_backend
+    from sinpapel.signing.factory import get_signature_backend
     user = django_user_model.objects.create_user("alice")
     backend = get_signature_backend()
     registro = backend.request_signature(b"contenido", signer=user)
