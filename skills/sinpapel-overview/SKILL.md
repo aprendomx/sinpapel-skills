@@ -6,7 +6,7 @@ tested_against:
   - sinpapel-drf==0.4.5
   - sinpapel-webhooks==0.2.3
   - sinpapel-reports==0.2.3
-  - sinpapel-designer@S27.8
+  - sinpapel-designer@v0.1.0
   - sinpapel-vue@0.4.0
 applies_to:
   - "**/models.py"
@@ -50,7 +50,7 @@ v0.2 (`sinpapel_export_flujo` / `sinpapel_import_flujo`).
 | `sinpapel-drf` | API REST DRF: 8 acciones por modelo (incluye `documentos`/`requisitos`) + CRUD admin + portabilidad. | 0.4.5 |
 | `sinpapel-webhooks` | Outbound (signals→outbox→worker, HMAC) + inbound (`@webhook_receiver`). | 0.2.3 |
 | `sinpapel-reports` | Generación de documentos por plantilla (PDF overlay + DOCX) sobre `Documento`/`InstanciaDocumento`. Capa DRF opcional. | 0.2.3 |
-| `sinpapel-designer` | SPA Vue 3 + Quasar standalone para diseñar flujos. Round-trip JSON v0.2. | S27.8+ |
+| `sinpapel-designer` | SPA Vue 3 + Quasar standalone para diseñar flujos. Round-trip JSON v0.2. | v0.1.0 |
 | `sinpapel-vue` | Widgets Vue 3 que consumen `sinpapel-drf` para seguir flujos en el frontend (incluye carga documental). | 0.4.0 |
 
 ## Qué skill usar para qué tarea
@@ -177,7 +177,7 @@ sinpapel~=0.8.1
 sinpapel-drf~=0.4.3
 sinpapel-webhooks~=0.2.3
 sinpapel-reports~=0.2.2
-sinpapel-designer @ rama main (S27.8+)
+sinpapel-designer @ v0.1.0
 sinpapel-vue @ npm @aprendomx/sinpapel-vue@0.4.0
 ```
 

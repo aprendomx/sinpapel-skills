@@ -10,9 +10,9 @@ mejores prácticas para usarlo, de modo que cualquier agente de IA o
 desarrollador pueda construir un sistema de trámites sobre sinpapel sin
 releer todo el código fuente.
 
-**Versiones objetivo:** `sinpapel==0.7.0`, `sinpapel-drf==0.4.0`,
-`sinpapel-webhooks==0.2.1`, `sinpapel-reports==0.2.0`, `sinpapel-designer`
-@ rama `main` (S27.8+), `sinpapel-vue@0.3.0`.
+**Versiones objetivo:** `sinpapel==0.8.2`, `sinpapel-drf==0.4.5`,
+`sinpapel-webhooks==0.2.3`, `sinpapel-reports==0.2.3`,
+`sinpapel-designer@v0.1.0`, `sinpapel-vue@0.4.0`.
 
 ## Arquitectura: una sola fuente de verdad
 
@@ -158,7 +158,7 @@ como índice cross-tool legible por múltiples agentes.
 ## Limitaciones y notas
 
 - `sinpapel` está en **0.x (beta)**: la API es estable pero pueden ocurrir
-  breaking changes hasta 1.0. Fija `@v0.7.0` (o el tag/commit que uses) en
+  breaking changes hasta 1.0. Fija `~=0.8.2` (o el tag/commit que uses) en
   tus dependencias.
 - `i18n` del framework está parcialmente en español (verbose_names, mensajes
   de error). Las skills están en español por consistencia.
