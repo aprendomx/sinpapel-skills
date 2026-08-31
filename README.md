@@ -24,10 +24,13 @@ sinpapel-skills/
 │       ├── references/           ← opcional: heavy reference
 │       ├── scripts/              ← opcional: utilidades
 │       └── assets/               ← opcional: plantillas
+├── commands/                     ← FUENTE CANÓNICA de los slash commands
+│   └── sinpapel/<nombre>.md      ← se invocan como /sinpapel:<nombre>
 ├── build_skills.py               ← generador idempotente
 ├── Makefile                      ← atajos
 └── dist/                         ← GENERADO (no editar a mano)
     ├── claude/skills/...         ← formato Claude / Agent Skills
+    ├── claude/commands/...       ← slash commands (solo Claude Code)
     ├── opencode/.opencode/skills ← formato OpenCode (compatible)
     ├── cursor/.cursor/rules/...  ← reglas .mdc para Cursor
     └── AGENTS.md                 ← índice cross-tool
@@ -36,6 +39,22 @@ sinpapel-skills/
 **Regla:** cada skill se escribe **una sola vez** en `skills/<nombre>/SKILL.md`.
 Las variantes por proveedor se generan con `python build_skills.py` y **no
 deben editarse a mano**: los cambios viven en la fuente canónica.
+
+## Comandos
+
+Además de las skills, `commands/` guarda los slash commands del flujo de trabajo
+—`/sinpapel:especificar`, `/sinpapel:generar` y `/sinpapel:verificar`—, que
+describen cómo se construye un sistema de trámites: descripción en lenguaje
+natural → `spec/` → la app → los gates.
+
+Vivían en el template `sinpapel-boilerplate`, pero el flujo que describen no es
+específico de ese repositorio: en cuanto exista un segundo proyecto sobre
+sinpapel, dos copias divergen. Se vendorizan igual que las skills.
+
+Se emiten **solo para Claude Code**: los slash commands son una convención suya
+(`.claude/commands/<espacio>/<nombre>.md`) y no hay equivalente verificado en
+los otros destinos. Inventar un mapeo produciría archivos que ninguna
+herramienta lee.
 
 ## Catálogo de skills
 

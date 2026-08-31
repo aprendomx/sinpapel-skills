@@ -1,8 +1,9 @@
 #!/usr/bin/env python3
-"""Genera skills por proveedor desde la fuente canónica en skills/.
+"""Genera skills y comandos por proveedor desde la fuente canónica.
 
-Idempotente: borra y regenera dist/ completo. La fuente está en skills/<nombre>/SKILL.md
-con frontmatter YAML; los archivos en dist/ NO deben editarse a mano.
+Idempotente: borra y regenera dist/ completo. La fuente está en
+skills/<nombre>/SKILL.md con frontmatter YAML, y los comandos en
+commands/<espacio>/<nombre>.md; los archivos en dist/ NO deben editarse a mano.
 """
 from __future__ import annotations
 
@@ -15,6 +16,7 @@ import yaml
 
 ROOT = Path(__file__).resolve().parent
 SKILLS_DIR = ROOT / "skills"
+COMMANDS_DIR = ROOT / "commands"
 DIST = ROOT / "dist"
 
 
@@ -57,6 +59,22 @@ def write_cursor_rule(meta: dict, body: str, out_file: Path) -> None:
     fm_lines.append("")
     out_file.parent.mkdir(parents=True, exist_ok=True)
     out_file.write_text("\n".join(fm_lines) + body, encoding="utf-8")
+
+
+def build_commands(dst_root: Path) -> list[Path]:
+    """Copia los comandos tal cual al destino y devuelve los archivos emitidos.
+
+    Solo se emiten para Claude Code: los slash commands son una convención suya
+    —`.claude/commands/<espacio>/<nombre>.md`— y no hay equivalente verificado
+    en los otros destinos. Inventar un mapeo produciría archivos que ninguna
+    herramienta lee.
+    """
+    if not COMMANDS_DIR.exists():
+        return []
+    if dst_root.exists():
+        shutil.rmtree(dst_root)
+    shutil.copytree(COMMANDS_DIR, dst_root)
+    return sorted(p for p in dst_root.rglob("*.md") if p.is_file())
 
 
 def build_agents_md(skills: list[tuple[dict, Path]], out_file: Path) -> None:
@@ -120,8 +138,12 @@ def build(verify: bool = False) -> int:
         write_cursor_rule(meta, body, cursor_root / f"{sk.name}.mdc")
         print(f"  ✓ {sk.name}")
 
+    comandos = build_commands(DIST / "claude" / "commands")
+    for c in comandos:
+        print(f"  ✓ /{c.parent.name}:{c.stem}")
+
     build_agents_md(parsed, DIST / "AGENTS.md")
-    print(f"\nGenerado: {len(parsed)} skills → {DIST}")
+    print(f"\nGenerado: {len(parsed)} skills y {len(comandos)} comandos → {DIST}")
 
     if verify:
         # Re-ejecuta y comprueba que no cambia nada (idempotencia)
