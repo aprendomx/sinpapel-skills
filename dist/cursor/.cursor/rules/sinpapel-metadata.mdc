@@ -66,11 +66,42 @@ transición con `save(update_fields=[state_field, "actualizado"])`). Un
 |---|---|---|
 | `nombre` | `str` | Clave del valor. |
 | `tipo` | `type` | `str`, `int`, `bool`, `Decimal`, `date`. |
-| `requerido` | `bool` | Default `False`. |
-| `default` | `Any \| None` | Valor inicial. |
+| `requerido` | `bool` | Default `False`. **No lo combines con `default`** (ver abajo). |
+| `default` | `Any \| None` | Valor inicial. Con default, `requerido` no aporta nada. |
 | `choices` | `list \| None` | Lista de opciones permitidas. |
 | `etiqueta` | `str` | Label legible. |
 | `ayuda` | `str` | Help text. |
+
+### `requerido` y `default` no van juntos
+
+La combinación es **redundante**: `MetadatosProxy.errores()` comprueba
+`raw = self._datos.get(nombre, campo.default)`, así que un campo con default
+nunca se ve vacío y `requerido=True` no llega a disparar nunca.
+
+Y hasta **sinpapel 0.8.4** era además **fatal**: `build_serializer` emitía
+`required` y `default` a la vez, DRF aborta con `May not set both 'required'
+and 'default'`, y el resultado era un **500 en GET y PATCH de `/metadatos/`
+para todo el modelo**. El schema se declaraba sin protestar; el error aparecía
+al llamar la API.
+
+```python
+# Mal: redundante, y un 500 en /metadatos/ antes de 0.8.4.
+CampoMetadato(nombre="tipo", tipo=str, requerido=True, default="A", choices=[...])
+
+# Bien: el default ya garantiza que haya valor.
+CampoMetadato(nombre="tipo", tipo=str, default="A", choices=[...])
+```
+
+### Los campos opcionales viajan como `null`
+
+Un campo opcional sin default vale `None` en `to_dict()`, y eso es justo lo que
+devuelve un cliente que reenvíe los metadatos completos — como hace el
+formulario de `sinpapel-vue`, que envía todos los campos del schema.
+
+Desde **0.8.4** `build_serializer` marca esos campos con `allow_null=True` (y
+`allow_blank=True` los de texto), así que el ciclo funciona. Antes, DRF
+rechazaba tanto el `null` como la cadena vacía y **un campo de texto opcional
+era imposible de guardar por la API**.
 
 ## Leer / escribir valores
 

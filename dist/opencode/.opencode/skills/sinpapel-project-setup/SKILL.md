@@ -2,7 +2,7 @@
 name: sinpapel-project-setup
 description: Usar siempre que el usuario instale sinpapel en un proyecto Django nuevo o existente, configure INSTALLED_APPS, MIDDLEWARE o cualquier setting con prefijo SINPAPEL_*; mencione errores como "Estado no resuelto" / "history_user is None" / "AppRegistryNotReady"; o pregunte por dependencias (django-simple-history, cryptography, Pillow), versiones soportadas o el orden correcto de las apps. Cubre el primer migrate, la instalación desde PyPI (pip install "sinpapel~=0.8.1") y la verificación post-setup.
 tested_against:
-  - sinpapel==0.8.3
+  - sinpapel==0.8.4
 applies_to:
   - "**/settings*.py"
   - "**/requirements*.txt"

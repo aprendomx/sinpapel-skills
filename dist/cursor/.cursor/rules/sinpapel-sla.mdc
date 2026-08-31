@@ -78,8 +78,21 @@ acciones = SLAEngine.evaluar_instancia(solicitud)
 ```
 
 `evaluar_instancia` resuelve cuánto tiempo lleva la instancia en su estado
-actual (fecha del último `SeguimientoWorkflow`; fallback `creado`) y
-ejecuta las acciones cuyo plazo haya vencido. Acepta `dry_run=True`.
+actual y ejecuta las acciones cuyo plazo haya vencido. Acepta `dry_run=True`.
+
+**La referencia es el `fecha_accion` MÁS RECIENTE de toda la bitácora de la
+instancia** (`.order_by("-fecha_accion").first()`), con fallback a `creado` si
+no hay historial. No es "la fila de la última transición" sino el máximo de
+todas: en un test que envejece la bitácora a mano, retrasar solo el último
+registro no vence nada, porque cualquier otra fila reciente sigue marcando el
+inicio del conteo.
+
+```python
+# Correcto en un test: envejecer TODA la bitácora de la instancia.
+SeguimientoWorkflow.objects.filter(target_object_id=instancia.pk).update(
+    fecha_accion=timezone.now() - timedelta(days=6)
+)
+```
 
 ### Masivamente (todos los `SLAConfiguracion` activos)
 

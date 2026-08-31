@@ -210,8 +210,8 @@ curl -X POST -H "Authorization: Token <t>" \
 
 | Excepción | HTTP |
 |---|---|
-| `PermissionError` (grupos_permitidos, predicado, o requisito documental faltante desde 0.6.0) | 403 |
-| `ValueError` | 400 |
+| `PermissionError` (grupos_permitidos, predicado, requisito documental faltante desde 0.6.0, firma exigida, **y también** estado destino o arista inexistentes) | 403 |
+| `ValueError` | 400 — pero el motor casi nunca lo lanza; ver `sinpapel-transitions`. |
 | `SignatureValidationError` | 400 (`{"signature": [...]}`) |
 | `SignatureBackendNotConfiguredError` | 400 |
 | `django.core.exceptions.ValidationError` | 400 |

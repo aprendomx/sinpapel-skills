@@ -2,7 +2,7 @@
 name: sinpapel-sla
 description: Usar siempre que el usuario defina tiempos máximos por estado, escalamiento o alertas de vencimiento; use SLAConfiguracion, SLAEngine, las acciones notificar / escalar / rechazar / alertar, el comando sinpapel_verificar_slas, o los signals sla_breached y sla_action_executed. Cubre cómo configurar el cron, el dry-run y la integración con webhooks/notificaciones.
 tested_against:
-  - sinpapel==0.8.3
+  - sinpapel==0.8.4
 applies_to:
   - "**/migrations/*seed*sla*.py"
 ---
@@ -82,8 +82,21 @@ acciones = SLAEngine.evaluar_instancia(solicitud)
 ```
 
 `evaluar_instancia` resuelve cuánto tiempo lleva la instancia en su estado
-actual (fecha del último `SeguimientoWorkflow`; fallback `creado`) y
-ejecuta las acciones cuyo plazo haya vencido. Acepta `dry_run=True`.
+actual y ejecuta las acciones cuyo plazo haya vencido. Acepta `dry_run=True`.
+
+**La referencia es el `fecha_accion` MÁS RECIENTE de toda la bitácora de la
+instancia** (`.order_by("-fecha_accion").first()`), con fallback a `creado` si
+no hay historial. No es "la fila de la última transición" sino el máximo de
+todas: en un test que envejece la bitácora a mano, retrasar solo el último
+registro no vence nada, porque cualquier otra fila reciente sigue marcando el
+inicio del conteo.
+
+```python
+# Correcto en un test: envejecer TODA la bitácora de la instancia.
+SeguimientoWorkflow.objects.filter(target_object_id=instancia.pk).update(
+    fecha_accion=timezone.now() - timedelta(days=6)
+)
+```
 
 ### Masivamente (todos los `SLAConfiguracion` activos)
 

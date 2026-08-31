@@ -2,7 +2,7 @@
 name: sinpapel-migrations-seeding
 description: Usar siempre que el usuario siembre datos iniciales de Estado, Etapa, VersionFlujo o ConfiguracionTransicion vía data migrations; importe o exporte flujos con sinpapel_export_flujo / sinpapel_import_flujo (JSON schema v0.2); diseñe migraciones reversibles para catálogos del framework, o pregunte por requisitos documentales (RequisitoEstadoDocumento).
 tested_against:
-  - sinpapel==0.8.3
+  - sinpapel==0.8.4
 applies_to:
   - "**/migrations/*.py"
 ---
@@ -218,6 +218,22 @@ referencias faltantes (estados/grupos/tipos doc no existentes). Al
 activar después la versión importada, recuerda desactivar la anterior
 antes o en la misma transacción (constraint
 `sin_versionflujo_activa_uniq`, 0.8.0).
+
+**`deserialize_flujo` IGNORA la clave `flujo.activo` del JSON** y usa su propio
+parámetro `activo`, con default `False`. Un JSON que declara `"activo": true`
+se importa desactivado si no se lo pasas explícitamente, y el flujo queda
+sembrado pero muerto: `resolve_workflow_version()` filtra por `activo=True`, así
+que ninguna instancia lo encontraría.
+
+```python
+deserialize_flujo(datos, activo=datos["flujo"]["activo"])
+```
+
+**El export con `--inline-catalogs` solo incluye los estados que aparecen en
+alguna transición.** Un estado suelto —creado pero sin aristas— no viaja en
+`catalogos.estados`, así que un round-trip export→import lo pierde. Si tu flujo
+tiene estados aislados a propósito, dales al menos una arista o siémbralos
+aparte.
 
 `sinpapel-drf` expone los mismos como `GET /flujos/<pk>/export/` y
 `POST /flujos/import/` (`?dry_run=true` para validar sin persistir).

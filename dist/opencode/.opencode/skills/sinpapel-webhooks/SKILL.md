@@ -3,7 +3,7 @@ name: sinpapel-webhooks
 description: Usar siempre que el usuario emita o consuma webhooks con sinpapel-webhooks; configure WebhookSubscription / WebhookEvent / WebhookDelivery / InboundWebhookEvent; use el decorador @webhook_receiver, los backends de entrega inline / outbox / celery, HMAC-SHA256 con X-Sinpapel-Signature, política de reintentos con backoff y dead letter, idempotencia inbound, o el Admin REST API. Cubre el cron del worker y la verificación de firmas desde cliente.
 tested_against:
   - sinpapel-webhooks==0.2.4
-  - sinpapel==0.8.3
+  - sinpapel==0.8.4
 applies_to:
   - "**/webhooks.py"
   - "**/receivers/**/*.py"
@@ -70,6 +70,42 @@ python manage.py migrate
 Los handlers internos capturan un **snapshot** sincrónico del payload y
 encolan el `emit_event()` en `transaction.on_commit()` para garantizar
 que solo se emite tras commit.
+
+### El payload saliente es PLANO
+
+No lleva envoltorio `data`. Ese envoltorio es del formato **entrante**, y
+confundirlos es fácil porque las dos direcciones se documentan juntas:
+
+```python
+# WebhookEvent.payload de workflow.transition.completed
+{
+    "seguimiento_id": 1834,
+    "estado_anterior": "RECIBIDA",
+    "estado_nuevo": "EN_REVISION",
+    "user_id": 7,
+    "comentarios": "...",
+    "fecha_accion": "2026-08-30T...",
+    "target_object_id": 42,
+    "target_content_type": "solicitudconstancia",
+}
+```
+
+Un consumidor que lea `payload["data"]["estado_nuevo"]` recibe un `KeyError`.
+
+### En tests: los eventos no se emiten solos
+
+`emit_event` va dentro de `transaction.on_commit()`, y un test envuelto en
+transacción **nunca commitea**, así que el evento no llega a existir. No es un
+fallo del paquete: es la garantía de no emitir eventos de transacciones que
+luego hacen rollback.
+
+```python
+def test_se_emite_el_evento(django_capture_on_commit_callbacks):
+    with django_capture_on_commit_callbacks(execute=True):
+        solicitud.transition("APROBADA", user, firma_payload=...)
+
+    assert WebhookEvent.objects.filter(event_type="workflow.transition.completed").exists()
+```
 
 ## Subscribirse a eventos (outbound)
 

@@ -252,6 +252,37 @@ solicitud._history_user = user
 solicitud.save()
 ```
 
+## Lo que NO ocurre dentro de una transacción de test
+
+Tres mecanismos del framework se cuelgan de `transaction.on_commit()` o miran
+la bitácora completa. En un test envuelto en transacción —el default de
+`pytest.mark.django_db`— no se comportan como en producción, y el síntoma es
+siempre el mismo: parece que la funcionalidad no existe.
+
+**Los webhooks salientes no se emiten.** `emit_event` va en `on_commit`, y el
+test nunca commitea:
+
+```python
+def test_se_emite_el_evento(django_capture_on_commit_callbacks):
+    with django_capture_on_commit_callbacks(execute=True):
+        solicitud.transition("APROBADA", user, firma_payload=...)
+```
+
+**La invalidación del cache tampoco.** Los signals de `sinpapel.signals`
+envuelven cada `cache.delete` en `on_commit`. De ahí la fixture autouse que
+limpia el cache: sin ella, un `Estado` de un test anterior sobrevive con un id
+de una fila ya revertida.
+
+**El SLA toma como referencia el `fecha_accion` más reciente de TODA la
+bitácora de la instancia**, no la última fila insertada. Para envejecer un
+expediente hay que mover todas:
+
+```python
+SeguimientoWorkflow.objects.filter(target_object_id=instancia.pk).update(
+    fecha_accion=timezone.now() - timedelta(days=6)
+)
+```
+
 ## Testing de webhooks
 
 Backend `"inline"` ejecuta síncronamente; útil en tests:

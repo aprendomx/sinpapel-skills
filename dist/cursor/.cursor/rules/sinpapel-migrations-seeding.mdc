@@ -215,6 +215,22 @@ activar después la versión importada, recuerda desactivar la anterior
 antes o en la misma transacción (constraint
 `sin_versionflujo_activa_uniq`, 0.8.0).
 
+**`deserialize_flujo` IGNORA la clave `flujo.activo` del JSON** y usa su propio
+parámetro `activo`, con default `False`. Un JSON que declara `"activo": true`
+se importa desactivado si no se lo pasas explícitamente, y el flujo queda
+sembrado pero muerto: `resolve_workflow_version()` filtra por `activo=True`, así
+que ninguna instancia lo encontraría.
+
+```python
+deserialize_flujo(datos, activo=datos["flujo"]["activo"])
+```
+
+**El export con `--inline-catalogs` solo incluye los estados que aparecen en
+alguna transición.** Un estado suelto —creado pero sin aristas— no viaja en
+`catalogos.estados`, así que un round-trip export→import lo pierde. Si tu flujo
+tiene estados aislados a propósito, dales al menos una arista o siémbralos
+aparte.
+
 `sinpapel-drf` expone los mismos como `GET /flujos/<pk>/export/` y
 `POST /flujos/import/` (`?dry_run=true` para validar sin persistir).
 

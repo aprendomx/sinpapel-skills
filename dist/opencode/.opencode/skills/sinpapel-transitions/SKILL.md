@@ -2,7 +2,7 @@
 name: sinpapel-transitions
 description: Usar siempre que el usuario ejecute una transición de estado, llame transition() / available_transitions() / can_transition_to() / preview_transition(), maneje PermissionError o ValueError al transicionar, o use WorkflowEngine directamente. Cubre payload de firma (firma_payload), kwargs (comentarios, condiciones, ip_address) y la consulta del audit log SeguimientoWorkflow.
 tested_against:
-  - sinpapel==0.8.3
+  - sinpapel==0.8.4
 applies_to:
   - "**/views.py"
   - "**/services/**/*.py"
@@ -180,14 +180,36 @@ Si `SINPAPEL_EMIT_PREVIEW_EVENTS=True`, además se dispara el signal
 
 | Excepción | Significado | HTTP sugerido |
 |---|---|---|
-| `PermissionError` | Cualquier bloqueo de `puede_cambiar_estado`: el usuario no pertenece a ningún `grupos_permitidos`, un predicado falla, o (desde 0.6.0) falta un requisito documental. Lleva el `mensaje` del primer bloqueo. Desde 0.7.1 también: transición concurrente / copia stale (la revalidación bajo lock la rechaza). Desde 0.8.0 también: transición con `requiere_firma=True` sin `firma_payload`, o un `registro_firma_id` (Modo B) que no pasa las validaciones (ver abajo). | 403 |
-| `ValueError` | El nombre del estado destino no es válido o no existe la transición desde el estado actual. | 400 |
+| `PermissionError` | **Casi todo.** Cualquier bloqueo de `puede_cambiar_estado`: el usuario no pertenece a ningún `grupos_permitidos`, un predicado falla, falta un requisito documental (0.6.0), la revalidación bajo lock rechaza una transición concurrente (0.7.1), o falta `firma_payload` con `requiere_firma=True` (0.8.0). **Y también** el estado destino inexistente y la arista inexistente. Lleva el `mensaje` del primer bloqueo. | 403 |
+| `ValueError` | En la práctica, **no llega**. Ver la nota de abajo. | 400 |
 | `sinpapel.signing.exceptions.SignatureValidationError` | El `firma_payload` no verifica. | 400 |
 | `sinpapel.signing.exceptions.SignatureBackendNotConfiguredError` | `SINPAPEL_SIGNATURE_BACKEND` apunta a algo no importable. | 500 |
 | `WorkflowConfigurationError` | El flujo está mal configurado (estados inactivos, sin aristas). | 500 |
 
-`sinpapel-drf` ya mapea estas excepciones a códigos HTTP correctos. Si
-escribes una vista propia, replica el mapeo.
+### Ojo: `transition()` casi nunca lanza `ValueError`
+
+Es tentador mapear "estado destino inválido" y "arista inexistente" a un 400,
+pero **ninguno de los dos llega como `ValueError`**. Ambos se validan dentro de
+`puede_cambiar_estado`, que devuelve `(False, mensaje)`, y `cambiar_estado`
+convierte eso en `PermissionError` — es decir, 403.
+
+El único `ValueError` de `cambiar_estado` está en una rama que el propio código
+comenta como "no debería pasar": el estado destino desaparece entre la
+validación y la resolución. Verificado contra 0.8.4.
+
+```python
+# Los dos dan PermissionError, no ValueError:
+solicitud.transition("NO_EXISTE", user)   # "Estado destino 'NO_EXISTE' no existe"
+solicitud.transition("APROBADA", user)    # "No se puede cambiar de 'CAPTURA' a 'APROBADA'"
+```
+
+Consecuencia práctica: una vista propia que distinga 400 de 403 por el tipo de
+excepción devolverá 403 para errores que son del cliente. Si necesitas
+distinguirlos, inspecciona el mensaje o llama antes a `preview_transition()`,
+que sí separa las causas en `razones_bloqueo` por `tipo`.
+
+`sinpapel-drf` mapea estas excepciones a códigos HTTP. Si escribes una vista
+propia, replica el mapeo con esta salvedad en mente.
 
 ## Firma electrónica en la transición
 

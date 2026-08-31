@@ -32,6 +32,27 @@ su propio store desde props. Las pestañas **Requisitos** y **Documentos**
 Emits: ninguno (todo vía el store interno). Remount con `:key="pk"` si
 cambian `pk`/`resource`.
 
+**`currentState` es tuya y el panel no la actualiza.** Como no emite eventos,
+tras una transición exitosa el badge sigue mostrando el estado anterior hasta
+que recargues. El store interno sí se refresca (recarga estados e historial),
+pero la prop no.
+
+Para mantenerla al día sin remontar —remontar cierra el diálogo y reinicia la
+pestaña activa— detecta la transición en el propio cliente HTTP, que es el
+único punto por el que pasa:
+
+```js
+http.interceptors.response.use(async (respuesta) => {
+  const esTransicion =
+    respuesta.config?.method === 'post' &&
+    respuesta.config?.url?.includes(`/${resource}/${pk}/transition/`)
+  if (esTransicion && respuesta.status < 300) {
+    await recargarMiObjeto()   // actualiza la prop `current-state`
+  }
+  return respuesta
+})
+```
+
 ## Componentes hoja
 
 ### StateBadge
@@ -106,6 +127,23 @@ Cuatro backends, ligados al backend `sinpapel-signing`:
 
 La forma del payload la arma `buildSignaturePayload` (ver
 `sinpapel-vue-store`).
+
+## Detalles que muerden al automatizar
+
+Dos comportamientos del panel que rompen selectores en un e2e:
+
+- **Los nombres de estado se humanizan al mostrarlos**: `EN_REVISION` se pinta
+  como «EN REVISION», tanto en `StateBadge` como en las **opciones del
+  selector** de `TransitionDialog`. Selecciona por `value` (el nombre real),
+  no por etiqueta.
+- **Las pestañas inactivas siguen en el DOM**, ocultas. Un `getByText` sin
+  acotar alcanza contenido que nadie está viendo, incluidas las `<option>` de
+  los formularios de carga. Acota a lo visible.
+
+```js
+await dialogo.locator('select').first().selectOption({ value: 'EN_REVISION' })
+await expect(panel.locator('.sp-panel__body *:visible', { hasText: /Acuse/ })).toBeVisible()
+```
 
 ## Accesibilidad y ciclo de vida
 

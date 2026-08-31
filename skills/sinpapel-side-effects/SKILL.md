@@ -2,7 +2,7 @@
 name: sinpapel-side-effects
 description: Usar siempre que el usuario quiera ejecutar lógica adicional tras una transición de sinpapel (notificaciones, generación de oficios, integración con sistemas externos, llamadas a otros servicios), genere un documento al entrar a un estado (InstanciaDocumento.archivo_generado, auto_carga), use el decorador register_side_effect, registre handlers en AppConfig.ready(), o pregunte qué pasa si un handler falla, cuándo se ejecuta y cómo afecta a la atomicidad de la transición.
 tested_against:
-  - sinpapel==0.8.3
+  - sinpapel==0.8.4
 applies_to:
   - "**/apps.py"
   - "**/side_effects.py"

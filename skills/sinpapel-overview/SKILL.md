@@ -2,7 +2,7 @@
 name: sinpapel-overview
 description: Usar siempre que el usuario mencione el framework sinpapel, sinpapel-drf, sinpapel-webhooks, sinpapel-reports o sinpapel-designer; necesite decidir qué skill cargar; pregunte qué hace el framework, su arquitectura, qué versión usar, o cómo se relacionan sus paquetes; o cuando aparezcan términos como @workflow_enabled, VersionFlujo, ConfiguracionTransicion, SeguimientoWorkflow, FielBackend, RegistroFirma, CondicionTransicion, SLAConfiguracion o MetadatosCapturables sin un contexto más específico.
 tested_against:
-  - sinpapel==0.8.3
+  - sinpapel==0.8.4
   - sinpapel-drf==0.4.5
   - sinpapel-webhooks==0.2.4
   - sinpapel-reports==0.2.3
@@ -46,7 +46,7 @@ v0.2 (`sinpapel_export_flujo` / `sinpapel_import_flujo`).
 
 | Paquete | Qué añade | Versión |
 |---|---|---|
-| `sinpapel` | Núcleo: workflow + audit + signing + predicates + SLA + metadata. | 0.8.3 |
+| `sinpapel` | Núcleo: workflow + audit + signing + predicates + SLA + metadata. | 0.8.4 |
 | `sinpapel-drf` | API REST DRF: 8 acciones por modelo (incluye `documentos`/`requisitos`) + CRUD admin + portabilidad. | 0.4.5 |
 | `sinpapel-webhooks` | Outbound (signals→outbox→worker, HMAC) + inbound (`@webhook_receiver`). | 0.2.4 |
 | `sinpapel-reports` | Generación de documentos por plantilla (PDF overlay + DOCX) sobre `Documento`/`InstanciaDocumento`. Capa DRF opcional. | 0.2.3 |
@@ -120,6 +120,16 @@ v0.2 (`sinpapel_export_flujo` / `sinpapel_import_flujo`).
   `fields.E301`. Detalle en `sinpapel-project-setup`.
 - **`get_signature_backend` NO se re-exporta en `sinpapel.signing`**:
   impórtalo de `sinpapel.signing.factory`.
+- **`transition()` casi nunca lanza `ValueError`.** Un estado destino
+  inexistente y una arista inexistente salen como `PermissionError` (403), no
+  como 400. Detalle en `sinpapel-transitions`.
+- **`CampoMetadato` con `requerido=True` Y `default` es redundante**, y hasta
+  0.8.4 provocaba un 500 en `/metadatos/`. Detalle en `sinpapel-metadata`.
+- **`@aprendomx/sinpapel-vue` exige registrar los componentes de Quasar
+  globalmente.** Viene precompilado; sin registrarlos el panel se pinta pero
+  no transiciona, sin ningún error. Detalle en `sinpapel-vue-setup`.
+- **`deserialize_flujo` ignora `flujo.activo` del JSON** y usa su propio
+  parámetro, con default `False`. Detalle en `sinpapel-migrations-seeding`.
 - **`trazable` no está en PyPI**. Está inlined en `sinpapel/mixins.py`.
   Solo necesitas instalar `django-simple-history`.
 - **`history_user` puede ser `None`** fuera de un request (management
@@ -180,7 +190,7 @@ Instalación desde PyPI (pineando con `~=`; los minors pre-1.0 pueden
 romper):
 
 ```
-sinpapel~=0.8.3
+sinpapel~=0.8.4
 sinpapel-drf~=0.4.5
 sinpapel-webhooks~=0.2.4
 sinpapel-reports~=0.2.3
