@@ -90,13 +90,18 @@ result = backend.verify(registro)
 assert result.valid
 ```
 
-`VerificationResult` (DTO en `sinpapel/signing/dto.py`):
+`VerificationResult` (DTO frozen en `sinpapel/signing/dto.py`) solo tiene
+dos campos:
 
 - `valid` (bool)
-- `subject` (`x509.Name` del certificado)
-- `not_valid_before`, `not_valid_after`
-- `rfc_firmante`, `numero_serie_cer`
-- `errors` (lista de strings, vacío si válido)
+- `reason` (`str | None`): motivo cuando `valid=False`.
+
+`FielBackend.verify()` no re-verifica la firma RSA (el contenido original no
+se guarda, solo `content_hash`). Comprueba que exista la metadata FIEL y que
+el certificado se pueda cargar. Los datos del firmante se leen de
+`registro.backend_metadata`: `rfc_firmante`, `curp_firmante`,
+`rfc_representante` (solo persona moral) y `numero_serie_cer`. Ver la tabla
+en `SKILL.md`.
 
 ## Errores típicos
 

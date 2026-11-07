@@ -2,7 +2,7 @@
 name: sinpapel-signing
 description: Usar siempre que el usuario implemente firma electrónica con sinpapel, configure SINPAPEL_SIGNATURE_BACKEND, use FielBackend (FIEL/SAT México) en modo client-side o server-side, ManualBackend o FakeBackend, escriba un backend custom que implemente el Protocol SignatureBackend, persista RegistroFirma, llame get_signature_backend(), pase firma_payload a transition(), o vea SignatureValidationError / SignatureBackendNotConfiguredError. Cubre los dos modos del FIEL y el contrato del Port/Adapter.
 tested_against:
-  - sinpapel==0.8.4
+  - sinpapel==0.8.5
 applies_to:
   - "**/signing/**/*.py"
   - "**/backends/*.py"
@@ -105,10 +105,31 @@ SINPAPEL_SIGNATURE_BACKEND = "sinpapel.signing.backends.fake.FakeBackend"
       signer=user,
       cer_bytes=...,
       key_bytes=...,
-      password="...",
+      password=b"...",  # bytes, no str
       is_required=True,
   )
   ```
+
+#### `backend_metadata` del FIEL (0.8.5)
+
+Ambos modos persisten las mismas claves (modo B agrega `mode="server-side"`):
+
+| Clave | Contenido |
+|---|---|
+| `rfc_firmante` | RFC del **sujeto**, de `x500UniqueIdentifier` (2.5.4.45). Persona moral: el RFC de la empresa. |
+| `rfc_representante` | Solo persona moral: RFC del representante legal. Ausente en persona física. |
+| `curp_firmante` | CURP, de `serialNumber` (2.5.4.5). Persona moral: la del representante. |
+| `numero_serie_cer` | Número de serie del certificado, en hex. |
+| `cadena_verificada` | `True` si se validó contra `SINPAPEL_FIEL_TRUSTED_CA_BUNDLE`. |
+| `emisor` | DN del emisor en formato RFC 4514. |
+| `firma_pkcs7_b64`, `certificado_cer_b64` | Firma y certificado tal como llegaron. |
+
+En la e.firma del SAT, `serialNumber` es la **CURP**, no el RFC. Hasta
+0.8.4 `rfc_firmante` guardaba la CURP por error (issue #5). Los
+`RegistroFirma` de esas versiones no se reescriben porque son de solo
+inserción. Se reconocen porque **no tienen `curp_firmante`**. Si necesitas su
+RFC, léelo del `certificado_cer_b64` persistido (2.5.4.45 del sujeto). No
+leas el RFC del emisor: ese 2.5.4.45 es el del SAT (`SAT970701NN3`).
 
 #### Cadena de confianza (0.8.0)
 
